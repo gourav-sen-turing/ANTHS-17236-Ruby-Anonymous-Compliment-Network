@@ -60,3 +60,19 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
 end
+
+gem 'devise'
+
+# Image processing for avatars and uploads
+gem 'image_processing'
+
+# Active Storage validations for file uploads
+gem 'active_storage_validations'
+
+# For background processing (useful for image transformations)
+gem 'sidekiq'
+
+# Additional useful gems
+gem 'kaminari'  # For pagination
+gem 'pundit'    # For authorization
+gem 'faker'     # Helpful for seeding test data
