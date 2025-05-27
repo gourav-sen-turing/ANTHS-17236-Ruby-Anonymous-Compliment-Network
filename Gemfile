@@ -76,3 +76,4 @@ gem 'sidekiq'
 gem 'kaminari'  # For pagination
 gem 'pundit'    # For authorization
 gem 'faker'     # Helpful for seeding test data
+gem 'importmap-rails'
