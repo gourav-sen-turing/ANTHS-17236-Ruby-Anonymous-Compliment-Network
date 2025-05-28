@@ -3,6 +3,10 @@ class User < ApplicationRecord
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :validatable
 
+  has_many :memberships, dependent: :destroy
+  has_many :communities, through: :memberships
+  has_many :created_communities, class_name: 'Community', foreign_key: 'created_by_id'
+
   # Validations
   validates :username, presence: true, uniqueness: true,
             length: { minimum: 3, maximum: 30 },
