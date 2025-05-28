@@ -8,19 +8,18 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
 
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "application.tailwind", "data-turbo-track": "reload" if File.exist?(Rails.root.join("app/assets/builds/application.tailwind.css")) %>
 
-    <!-- Use only one of the following JavaScript includes based on your setup -->
-    <% if Rails.application.config.respond_to?(:importmap) %>
-    <!-- For importmap-rails approach -->
-    <%= javascript_importmap_tags %>
-    <% else %>
-    <!-- For jsbundling-rails/esbuild approach -->
     <%= javascript_include_tag "application", "data-turbo-track": "reload", defer: true %>
-    <% end %>
+    <%= javascript_importmap_tags %>
   </head>
   <body>
-    <%= yield %>
+    <main class="container mx-auto mt-28 px-5 flex">
+      <%= yield %>
+    </main>
   </body>
 </html>
