@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+
+echo "Setting up database for Anonymous Compliment Network..."
+
+# Remove any existing credentials that might be causing issues
+rm -f config/credentials.yml.enc
+rm -f config/master.key
+
+# Generate new empty credentials
+EDITOR="cat > /dev/null" bundle exec rails credentials:edit
+
+# Reset and create database
+bundle exec rails db:reset_all
+
+echo "Database setup complete. You can now run migrations or seeds."
