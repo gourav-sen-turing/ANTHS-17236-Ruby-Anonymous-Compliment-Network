@@ -7,6 +7,8 @@ class Compliment < ApplicationRecord
   has_many :kudos, dependent: :destroy
   has_many :reports, dependent: :destroy
 
+  has_many :mood_entries
+
   # Validations
   validates :content, presence: true, length: { in: 10..1000 }
   validates :status, inclusion: { in: %w(pending approved rejected) }
@@ -78,6 +80,10 @@ class Compliment < ApplicationRecord
     ]
 
     inappropriate_patterns.any? { |pattern| content.match?(pattern) }
+  end
+
+  def mood_impact(window_hours = 24)
+    MoodEntry.compliment_impact(self, window_hours)
   end
 
   private
