@@ -7,6 +7,11 @@ class User < ApplicationRecord
   has_many :communities, through: :memberships
   has_many :created_communities, class_name: 'Community', foreign_key: 'created_by_id'
 
+  has_many :received_compliments, class_name: 'Compliment', foreign_key: 'recipient_id', dependent: :nullify
+  has_many :sent_compliments, class_name: 'Compliment', foreign_key: 'sender_id', dependent: :nullify
+  has_many :kudos, dependent: :destroy
+  has_many :given_kudos, through: :kudos, source: :compliment
+
   # Validations
   validates :username, presence: true, uniqueness: true,
             length: { minimum: 3, maximum: 30 },
