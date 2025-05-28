@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_05_28_133044) do
+ActiveRecord::Schema[7.2].define(version: 2025_05_28_135746) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -37,6 +37,32 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_28_133044) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "categories", force: :cascade do |t|
+    t.string "name", null: false
+    t.text "description"
+    t.string "icon"
+    t.string "color", default: "#6366F1"
+    t.string "scope", default: "global"
+    t.integer "created_by_id"
+    t.integer "community_id"
+    t.integer "compliments_count", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["community_id"], name: "index_categories_on_community_id"
+    t.index ["created_by_id"], name: "index_categories_on_created_by_id"
+    t.index ["name", "scope", "community_id"], name: "index_categories_on_name_and_scope_and_community_id", unique: true
+    t.index ["name"], name: "index_categories_on_name"
+    t.index ["scope", "community_id"], name: "index_categories_on_scope_and_community_id"
+    t.index ["scope"], name: "index_categories_on_scope"
+  end
+
+  create_table "categories_compliments", id: false, force: :cascade do |t|
+    t.integer "compliment_id", null: false
+    t.integer "category_id", null: false
+    t.index ["category_id", "compliment_id"], name: "index_categories_compliments_on_category_id_and_compliment_id"
+    t.index ["compliment_id", "category_id"], name: "index_categories_compliments_on_compliment_id_and_category_id", unique: true
   end
 
   create_table "communities", force: :cascade do |t|
@@ -167,6 +193,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_28_133044) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "categories", "communities"
+  add_foreign_key "categories", "users", column: "created_by_id"
   add_foreign_key "communities", "users", column: "created_by_id"
   add_foreign_key "compliments", "communities"
   add_foreign_key "compliments", "users", column: "recipient_id"

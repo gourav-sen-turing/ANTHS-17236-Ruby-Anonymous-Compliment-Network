@@ -14,6 +14,8 @@ class User < ApplicationRecord
 
   has_many :mood_entries, dependent: :destroy
 
+  has_many :created_categories, class_name: 'Category', foreign_key: 'created_by_id', dependent: :nullify
+
   # Validations
   validates :username, presence: true, uniqueness: true,
             length: { minimum: 3, maximum: 30 },
@@ -84,6 +86,10 @@ class User < ApplicationRecord
     else
       :stale
     end
+  end
+
+  def available_categories(community = nil)
+    Category.available_for(self, community)
   end
 
   private

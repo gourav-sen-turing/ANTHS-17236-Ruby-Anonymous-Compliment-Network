@@ -9,6 +9,8 @@ class Compliment < ApplicationRecord
 
   has_many :mood_entries
 
+  has_and_belongs_to_many :categories
+
   # Validations
   validates :content, presence: true, length: { in: 10..1000 }
   validates :status, inclusion: { in: %w(pending approved rejected) }
@@ -84,6 +86,21 @@ class Compliment < ApplicationRecord
 
   def mood_impact(window_hours = 24)
     MoodEntry.compliment_impact(self, window_hours)
+  end
+
+  def category_names
+    categories.pluck(:name).join(", ")
+  end
+
+  # Method to assign categories by names
+  def category_list=(names)
+    self.categories = names.split(",").map do |name|
+      Category.find_or_create_by!(name: name.strip, scope: 'global')
+    end
+  end
+
+  def category_list
+    categories.pluck(:name).join(", ")
   end
 
   private

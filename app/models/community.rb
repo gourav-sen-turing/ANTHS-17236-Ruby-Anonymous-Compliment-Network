@@ -5,6 +5,8 @@ class Community < ApplicationRecord
   has_many :users, through: :memberships
   has_many :compliments
 
+  has_many :categories, dependent: :destroy
+
   # Active Storage
   has_one_attached :avatar
 
@@ -57,6 +59,19 @@ class Community < ApplicationRecord
 
     false
   end
+
+  # Method to get available categories for this community
+  def available_categories
+    Category.for_community(id)
+  end
+
+  # Method to check if user is a moderator
+  def moderator?(user)
+    return false unless user
+    membership = memberships.find_by(user: user)
+    membership && %w[moderator admin].include?(membership.role)
+  end
+
 
   private
 
