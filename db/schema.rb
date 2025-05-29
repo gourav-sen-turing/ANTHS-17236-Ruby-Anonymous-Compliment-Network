@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_05_27_125256) do
+ActiveRecord::Schema[7.2].define(version: 2025_05_28_135746) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -39,6 +39,124 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_27_125256) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "categories", force: :cascade do |t|
+    t.string "name", null: false
+    t.text "description"
+    t.string "icon"
+    t.string "color", default: "#6366F1"
+    t.string "scope", default: "global"
+    t.integer "created_by_id"
+    t.integer "community_id"
+    t.integer "compliments_count", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["community_id"], name: "index_categories_on_community_id"
+    t.index ["created_by_id"], name: "index_categories_on_created_by_id"
+    t.index ["name", "scope", "community_id"], name: "index_categories_on_name_and_scope_and_community_id", unique: true
+    t.index ["name"], name: "index_categories_on_name"
+    t.index ["scope", "community_id"], name: "index_categories_on_scope_and_community_id"
+    t.index ["scope"], name: "index_categories_on_scope"
+  end
+
+  create_table "categories_compliments", id: false, force: :cascade do |t|
+    t.integer "compliment_id", null: false
+    t.integer "category_id", null: false
+    t.index ["category_id", "compliment_id"], name: "index_categories_compliments_on_category_id_and_compliment_id"
+    t.index ["compliment_id", "category_id"], name: "index_categories_compliments_on_compliment_id_and_category_id", unique: true
+  end
+
+  create_table "communities", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "slug", null: false
+    t.text "description"
+    t.string "community_type", default: "interest"
+    t.string "email_domain"
+    t.string "privacy_level", default: "public"
+    t.text "rules"
+    t.string "join_code"
+    t.integer "created_by_id"
+    t.integer "compliments_count", default: 0
+    t.integer "members_count", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["community_type"], name: "index_communities_on_community_type"
+    t.index ["created_by_id"], name: "index_communities_on_created_by_id"
+    t.index ["email_domain"], name: "index_communities_on_email_domain"
+    t.index ["privacy_level"], name: "index_communities_on_privacy_level"
+    t.index ["slug"], name: "index_communities_on_slug", unique: true
+  end
+
+  create_table "compliments", force: :cascade do |t|
+    t.text "content", null: false
+    t.integer "recipient_id", null: false
+    t.integer "sender_id"
+    t.boolean "anonymous", default: false
+    t.string "status", default: "pending"
+    t.datetime "read_at"
+    t.integer "community_id"
+    t.string "category"
+    t.integer "kudos_count", default: 0
+    t.integer "reports_count", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["anonymous"], name: "index_compliments_on_anonymous"
+    t.index ["category"], name: "index_compliments_on_category"
+    t.index ["community_id"], name: "index_compliments_on_community_id"
+    t.index ["read_at"], name: "index_compliments_on_read_at"
+    t.index ["recipient_id"], name: "index_compliments_on_recipient_id"
+    t.index ["sender_id"], name: "index_compliments_on_sender_id"
+    t.index ["status"], name: "index_compliments_on_status"
+  end
+
+  create_table "kudos", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "compliment_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["compliment_id"], name: "index_kudos_on_compliment_id"
+    t.index ["user_id"], name: "index_kudos_on_user_id"
+  end
+
+  create_table "memberships", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "community_id", null: false
+    t.string "role", default: "member"
+    t.string "status", default: "active"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["community_id"], name: "index_memberships_on_community_id"
+    t.index ["user_id", "community_id"], name: "index_memberships_on_user_id_and_community_id", unique: true
+    t.index ["user_id"], name: "index_memberships_on_user_id"
+  end
+
+  create_table "mood_entries", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "value", null: false
+    t.text "notes"
+    t.datetime "recorded_at", null: false
+    t.integer "compliment_id"
+    t.string "context"
+    t.string "factors"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["compliment_id"], name: "index_mood_entries_on_compliment_id"
+    t.index ["context"], name: "index_mood_entries_on_context"
+    t.index ["recorded_at"], name: "index_mood_entries_on_recorded_at"
+    t.index ["user_id", "recorded_at"], name: "index_mood_entries_on_user_id_and_recorded_at"
+    t.index ["user_id"], name: "index_mood_entries_on_user_id"
+    t.index ["value"], name: "index_mood_entries_on_value"
+  end
+
+  create_table "reports", force: :cascade do |t|
+    t.integer "reporter_id", null: false
+    t.integer "compliment_id", null: false
+    t.string "status"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["compliment_id"], name: "index_reports_on_compliment_id"
+    t.index ["reporter_id"], name: "index_reports_on_reporter_id"
+  end
+
   create_table "test_tables", force: :cascade do |t|
     t.string "name"
     t.datetime "created_at", null: false
@@ -65,7 +183,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_27_125256) do
     t.datetime "remember_created_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "current_mood"
     t.index ["anonymous_identifier"], name: "index_users_on_anonymous_identifier", unique: true
+    t.index ["current_mood"], name: "index_users_on_current_mood"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["username"], name: "index_users_on_username", unique: true
@@ -73,4 +193,18 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_27_125256) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "categories", "communities"
+  add_foreign_key "categories", "users", column: "created_by_id"
+  add_foreign_key "communities", "users", column: "created_by_id"
+  add_foreign_key "compliments", "communities"
+  add_foreign_key "compliments", "users", column: "recipient_id"
+  add_foreign_key "compliments", "users", column: "sender_id"
+  add_foreign_key "kudos", "compliments"
+  add_foreign_key "kudos", "users"
+  add_foreign_key "memberships", "communities"
+  add_foreign_key "memberships", "users"
+  add_foreign_key "mood_entries", "compliments"
+  add_foreign_key "mood_entries", "users"
+  add_foreign_key "reports", "compliments"
+  add_foreign_key "reports", "reporters"
 end

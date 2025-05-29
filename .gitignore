@@ -29,6 +29,9 @@
 !/tmp/storage/
 !/tmp/storage/.keep
 
+# Ignore all bootsnap cache files
+/tmp/cache/bootsnap/
+
 /public/assets
 
 # Ignore master key for decrypting credentials and more.
