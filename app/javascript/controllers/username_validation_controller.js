@@ -4,6 +4,9 @@ export default class extends Controller {
   static targets = ["input", "feedback"]
 
   connect() {
+    console.log("Username validation controller connected!")
+    // Add a class to visually confirm connection
+    this.element.classList.add("controller-connected")
     this.validateOnChange()
   }
 
@@ -13,6 +16,7 @@ export default class extends Controller {
 
   validate() {
     const username = this.inputTarget.value
+    console.log("Validating username:", username)
 
     if (username.length === 0) {
       this.showFeedback("Username can't be blank", "error")
@@ -39,8 +43,7 @@ export default class extends Controller {
 
   showFeedback(message, type) {
     this.feedbackTarget.textContent = message
-    this.feedbackTarget.className = type === "error"
-    ? "text-xs text-red-500 mt-1"
-    : "text-xs text-green-500 mt-1"
+    this.feedbackTarget.classList.remove("text-gray-500", "text-red-500", "text-green-500")
+    this.feedbackTarget.classList.add(type === "error" ? "text-red-500" : "text-green-500")
   }
 }
