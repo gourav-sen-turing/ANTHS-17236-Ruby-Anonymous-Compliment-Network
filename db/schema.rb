@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_06_02_103234) do
+ActiveRecord::Schema[7.2].define(version: 2025_06_02_114836) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -69,20 +69,16 @@ ActiveRecord::Schema[7.2].define(version: 2025_06_02_103234) do
     t.string "name", null: false
     t.string "slug", null: false
     t.text "description"
-    t.string "community_type", default: "interest"
-    t.string "email_domain"
-    t.string "privacy_level", default: "public"
-    t.text "rules"
-    t.string "join_code"
-    t.integer "created_by_id"
-    t.integer "compliments_count", default: 0
-    t.integer "members_count", default: 0
+    t.integer "community_type", default: 0
+    t.string "domain"
+    t.integer "privacy_level", default: 0
+    t.integer "creator_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["community_type"], name: "index_communities_on_community_type"
-    t.index ["created_by_id"], name: "index_communities_on_created_by_id"
-    t.index ["email_domain"], name: "index_communities_on_email_domain"
-    t.index ["privacy_level"], name: "index_communities_on_privacy_level"
+    t.index ["creator_id"], name: "index_communities_on_creator_id"
+    t.index ["domain"], name: "index_communities_on_domain"
+    t.index ["name"], name: "index_communities_on_name"
     t.index ["slug"], name: "index_communities_on_slug", unique: true
   end
 
@@ -120,12 +116,18 @@ ActiveRecord::Schema[7.2].define(version: 2025_06_02_103234) do
   create_table "memberships", force: :cascade do |t|
     t.integer "user_id", null: false
     t.integer "community_id", null: false
-    t.string "role", default: "member"
-    t.string "status", default: "active"
+    t.integer "role", default: 0
+    t.integer "status", default: 0
+    t.datetime "joined_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["community_id", "role"], name: "index_memberships_on_community_id_and_role"
+    t.index ["community_id", "status"], name: "index_memberships_on_community_id_and_status"
     t.index ["community_id"], name: "index_memberships_on_community_id"
+    t.index ["role"], name: "index_memberships_on_role"
+    t.index ["status"], name: "index_memberships_on_status"
     t.index ["user_id", "community_id"], name: "index_memberships_on_user_id_and_community_id", unique: true
+    t.index ["user_id", "status"], name: "index_memberships_on_user_id_and_status"
     t.index ["user_id"], name: "index_memberships_on_user_id"
   end
 
@@ -197,7 +199,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_06_02_103234) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "categories", "communities"
   add_foreign_key "categories", "users", column: "created_by_id"
-  add_foreign_key "communities", "users", column: "created_by_id"
+  add_foreign_key "communities", "users", column: "creator_id"
   add_foreign_key "compliments", "communities"
   add_foreign_key "compliments", "users", column: "recipient_id"
   add_foreign_key "compliments", "users", column: "sender_id"

@@ -1,90 +1,42 @@
 class Community < ApplicationRecord
-  # Associations
-  belongs_to :created_by, class_name: 'User'
+  belongs_to :creator, class_name: 'User'
+
   has_many :memberships, dependent: :destroy
   has_many :users, through: :memberships
-  has_many :compliments
+  has_many :compliments, dependent: :nullify
 
-  has_many :categories, dependent: :destroy
-
-  # Active Storage
-  has_one_attached :avatar
-
-  # Validations
-  validates :name, presence: true, length: { in: 3..50 }
+  validates :name, presence: true, length: { minimum: 3, maximum: 50 }
   validates :slug, presence: true, uniqueness: true,
-            format: { with: /\A[a-z0-9-]+\z/, message: "only allows lowercase letters, numbers, and hyphens" }
-  validates :community_type, inclusion: { in: %w(geographic workplace interest), message: "%{value} is not a valid community type" }
-  validates :privacy_level, inclusion: { in: %w(public private invite_only), message: "%{value} is not a valid privacy level" }
-  validates :email_domain, format: { with: /\A[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,}\z/i, message: "not a valid domain format" },
-            allow_blank: true
+            format: { with: /\A[a-z0-9\-_]+\z/, message: "can only contain lowercase letters, numbers, hyphens and underscores" }
+  validates :description, length: { maximum: 500 }
 
-  # Callbacks
+  enum community_type: {
+    interest: 0,
+    geographic: 1,
+    workplace: 2,
+    educational: 3,
+    organization: 4
+  }
+
+  enum privacy_level: {
+    public: 0,
+    restricted: 1,
+    private: 2
+  }
+
   before_validation :generate_slug, if: -> { slug.blank? && name.present? }
 
-  # Scopes
-  scope :public_communities, -> { where(privacy_level: 'public') }
-  scope :by_type, ->(type) { where(community_type: type) }
-  scope :searchable, -> { where(privacy_level: ['public', 'private']) }
-
-  # Instance Methods
-  def to_param
-    slug
+  def active_users
+    users.joins(:memberships).where(memberships: { status: :active })
   end
 
-  def public?
-    privacy_level == 'public'
+  def pending_users
+    users.joins(:memberships).where(memberships: { status: :pending })
   end
-
-  def private?
-    privacy_level == 'private'
-  end
-
-  def invite_only?
-    privacy_level == 'invite_only'
-  end
-
-  def domain_restricted?
-    email_domain.present?
-  end
-
-  def user_can_join?(user)
-    return true if public?
-    return false unless user
-
-    if domain_restricted?
-      user_domain = user.email.split('@').last
-      return user_domain == email_domain
-    end
-
-    false
-  end
-
-  # Method to get available categories for this community
-  def available_categories
-    Category.for_community(id)
-  end
-
-  # Method to check if user is a moderator
-  def moderator?(user)
-    return false unless user
-    membership = memberships.find_by(user: user)
-    membership && %w[moderator admin].include?(membership.role)
-  end
-
 
   private
 
   def generate_slug
-    base_slug = name.parameterize
-    candidate_slug = base_slug
-    counter = 0
-
-    while Community.exists?(slug: candidate_slug)
-      counter += 1
-      candidate_slug = "#{base_slug}-#{counter}"
-    end
-
-    self.slug = candidate_slug
+    self.slug = name.parameterize
   end
 end

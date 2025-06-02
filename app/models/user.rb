@@ -9,8 +9,9 @@ class User < ApplicationRecord
   has_many :sent_compliments, class_name: 'Compliment', foreign_key: 'sender_id', dependent: :nullify
   has_many :received_compliments, class_name: 'Compliment', foreign_key: 'recipient_id', dependent: :destroy
   has_many :mood_entries, dependent: :destroy
-  has_many :community_memberships, dependent: :destroy
-  has_many :communities, through: :community_memberships
+  has_many :memberships, dependent: :destroy
+  has_many :communities, through: :memberships
+  has_many :created_communities, class_name: 'Community', foreign_key: 'creator_id', dependent: :nullify
 
   # Active Storage
   has_one_attached :avatar
@@ -73,6 +74,34 @@ class User < ApplicationRecord
 
     # Return a default anonymous avatar
     "anonymous_avatar.png"
+  end
+
+  def joined_communities
+    communities.joins(:memberships).where(memberships: { user_id: id, status: :active })
+  end
+
+  def pending_communities
+    communities.joins(:memberships).where(memberships: { user_id: id, status: :pending })
+  end
+
+  def join_community(community, status = :pending)
+    memberships.create(community: community, status: status)
+  end
+
+  def leave_community(community)
+    memberships.find_by(community: community)&.destroy
+  end
+
+  def community_role(community)
+    memberships.find_by(community: community)&.role
+  end
+
+  def is_community_admin?(community)
+    memberships.exists?(community: community, role: :admin) || created_communities.exists?(id: community.id)
+  end
+
+  def is_community_moderator?(community)
+    memberships.exists?(community: community, role: [:moderator, :admin]) || created_communities.exists?(id: community.id)
   end
 
   private

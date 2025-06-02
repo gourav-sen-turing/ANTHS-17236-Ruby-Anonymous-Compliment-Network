@@ -1,0 +1,28 @@
+<div>
+  <div class="flex justify-between items-center mb-6">
+    <h1>
+      Communities
+    </h1>
+    <%= link_to "Create Community", new_community_path, class: "bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded" %>
+  </div>
+  <% if @user_communities.present? %>
+  <div>
+    <h2>
+      Your Communities
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <% @user_communities.each do |community| %>
+      <%= render 'community_card', community: community, membership: current_user.memberships.find_by(community: community) %>
+      <% end %>
+    </div>
+  </div>
+  <% end %>
+  <h2>
+    Discover Communities
+  </h2>
+  <div>
+    <% @communities.each do |community| %>
+    <%= render 'community_card', community: community, membership: current_user.memberships.find_by(community: community) %>
+    <% end %>
+  </div>
+</div>
