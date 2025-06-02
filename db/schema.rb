@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_05_28_135746) do
+ActiveRecord::Schema[7.2].define(version: 2025_06_02_103234) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -184,6 +184,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_28_135746) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "current_mood"
+    t.integer "anonymity_level", default: 0, null: false
+    t.index ["anonymity_level"], name: "index_users_on_anonymity_level"
     t.index ["anonymous_identifier"], name: "index_users_on_anonymous_identifier", unique: true
     t.index ["current_mood"], name: "index_users_on_current_mood"
     t.index ["email"], name: "index_users_on_email", unique: true
