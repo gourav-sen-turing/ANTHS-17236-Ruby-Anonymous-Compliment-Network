@@ -79,3 +79,4 @@ gem 'faker'     # Helpful for seeding test data
 
 gem "importmap-rails"
 gem "tailwindcss-rails"
+gem "byebug"
