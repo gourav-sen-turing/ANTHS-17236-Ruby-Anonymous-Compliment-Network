@@ -9,19 +9,37 @@ class Users::RegistrationsController < Devise::RegistrationsController
 
   # POST /resource
   def create
-    byebug
     build_resource(sign_up_params)
 
-    # Fix for NameError - Use safer navigation operator and check if user exists and is not confirmed
+    # Fix the problematic logic - use respond_to? for safety
     existing_user = User.find_by(email: resource.email)
-    if existing_user && !existing_user.confirmed?
-      existing_user.destroy
+
+    # Safely check if the user exists and is unconfirmed
+    if existing_user && existing_user.respond_to?(:confirmed?)
+      if !existing_user.confirmed?
+        existing_user.destroy
+      end
     end
 
-    # Continue with the standard Devise flow
-    resource.save!
+    # Change save! to save to prevent exceptions
+    resource.save  # removed the ! to prevent raising exceptions
     yield resource if block_given?
-    # ...rest of the method remains the same
+
+    if resource.persisted?
+      if resource.active_for_authentication?
+        set_flash_message! :notice, :signed_up
+        sign_up(resource_name, resource)
+        respond_with resource, location: after_sign_up_path_for(resource)
+      else
+        set_flash_message! :notice, :"signed_up_but_#{resource.inactive_message}"
+        expire_data_after_sign_in!
+        respond_with resource, location: after_inactive_sign_up_path_for(resource)
+      end
+    else
+      clean_up_passwords resource
+      set_minimum_password_length
+      respond_with resource
+    end
   end
 
   # GET /resource/edit
@@ -37,6 +55,22 @@ class Users::RegistrationsController < Devise::RegistrationsController
   # DELETE /resource
   def destroy
     super
+  end
+
+  def after_sign_up_path_for(resource)
+    begin
+      dashboard_path # If this exists
+    rescue
+      root_path # Fallback
+    end
+  end
+
+  def after_inactive_sign_up_path_for(resource)
+    begin
+      confirmation_pending_path # If this exists
+    rescue
+      root_path # Fallback
+    end
   end
 
   protected

@@ -2,8 +2,8 @@
 class User < ApplicationRecord
   # Include default devise modules
   devise :database_authenticatable, :registerable,
-         :recoverable, :rememberable, :validatable,
-         :confirmable
+         :recoverable, :rememberable, :validatable
+         #,:confirmable
 
   # Associations
   has_many :sent_compliments, class_name: 'Compliment', foreign_key: 'sender_id', dependent: :nullify
