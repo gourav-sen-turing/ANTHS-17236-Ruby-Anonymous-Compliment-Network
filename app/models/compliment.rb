@@ -4,6 +4,15 @@ class Compliment < ApplicationRecord
   belongs_to :sender, class_name: 'User', optional: true
   belongs_to :community, optional: true
 
+  belongs_to :sender, class_name: 'User', optional: true
+  belongs_to :recipient, class_name: 'User'
+  attribute :anonymous_send, :boolean, default: false
+
+  def sender_display_name(viewer = nil)
+    return "Anonymous" if anonymous_send || sender.nil?
+    sender.display_name(viewer)
+  end
+
   has_many :kudos, dependent: :destroy
   has_many :reports, dependent: :destroy
 

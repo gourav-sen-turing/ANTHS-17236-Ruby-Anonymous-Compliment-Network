@@ -1,113 +1,190 @@
 class User < ApplicationRecord
   # Include default devise modules
   devise :database_authenticatable, :registerable,
-  :recoverable, :rememberable, :validatable
+  :recoverable, :rememberable, :validatable,
+  :confirmable, :trackable
 
-  has_many :memberships, dependent: :destroy
-  has_many :communities, through: :memberships
-  has_many :created_communities, class_name: 'Community', foreign_key: 'created_by_id'
+  # Attachments
+  has_one_attached :avatar
 
-  has_many :received_compliments, class_name: 'Compliment', foreign_key: 'recipient_id', dependent: :nullify
+  # Associations
   has_many :sent_compliments, class_name: 'Compliment', foreign_key: 'sender_id', dependent: :nullify
-  has_many :kudos, dependent: :destroy
-  has_many :given_kudos, through: :kudos, source: :compliment
-
+  has_many :received_compliments, class_name: 'Compliment', foreign_key: 'recipient_id', dependent: :destroy
   has_many :mood_entries, dependent: :destroy
-
-  has_many :created_categories, class_name: 'Category', foreign_key: 'created_by_id', dependent: :nullify
+  has_many :privacy_setting_changes, dependent: :destroy
+  has_many :community_memberships, dependent: :destroy
+  has_many :communities, through: :community_memberships
 
   # Validations
   validates :username, presence: true,
-            uniqueness: { case_sensitive: false },
-            length: { minimum: 3, maximum: 30 },
-            format: { with: /\A[a-zA-Z0-9_]+\z/,
-              message: "only allows letters, numbers, and underscores" }
-              validates :role, inclusion: { in: %w(user admin moderator) }
-              validates :mood, inclusion: { in: 1..5 }, allow_nil: true
+  uniqueness: { case_sensitive: false },
+  length: { minimum: 3, maximum: 30 },
+  format: { with: /\A[a-zA-Z0-9_]+\z/,
+    message: "only allows letters, numbers, and underscores" }
+    validates :anonymous_identifier, presence: true, uniqueness: true
+    validate :anonymous_identifier_format
+
+  # Attributes & Enums
+  enum role: { user: 0, moderator: 1, admin: 2 }, _default: 0
+  enum anonymity_level: {
+    full_anonymity: 0,       # Hide all personal information
+    partial_anonymity: 1,    # Show selective information like username only
+    community_only: 2,       # Visible only within specific communities
+    fully_visible: 3         # Public profile
+  }, _default: 0
+
+  attribute :profile_visible, :boolean, default: false
+  attribute :terms_accepted, :boolean
 
   # Callbacks
   before_validation :set_anonymous_identifier, on: :create
-  before_validation :extract_email_domain, if: :email_changed?
+  after_update :track_privacy_changes
 
-  # Avatar attachment using Active Storage
-  has_one_attached :avatar
+  # Scopes
+  scope :publicly_visible, -> { where(profile_visible: true) }
+  scope :with_compliments, -> { joins(:sent_compliments).or(joins(:received_compliments)).distinct }
+  scope :by_anonymity_level, -> (level) { where(anonymity_level: level) }
 
-  # Virtual attribute for avatar upload
-  attr_accessor :avatar_upload
+  # Public methods for anonymity management
+  def display_name(viewer = nil)
+    return username if viewer == self
+    return anonymous_identifier if !profile_visible || anonymity_level == "full_anonymity"
+    return username if anonymity_level == "partial_anonymity"
 
-  # Callbacks for avatar processing
-  after_save :attach_avatar, if: :avatar_upload
+    if anonymity_level == "community_only" && viewer.present?
+      shared_communities = communities.where(id: viewer.community_ids)
+      return username if shared_communities.any?
+      return anonymous_identifier
+    end
 
-  def average_mood(period = :all)
-    entries = case period
-    when :today
-      mood_entries.where(recorded_at: Date.current.all_day)
-    when :week
-      mood_entries.where(recorded_at: Date.current.all_week)
-    when :month
-      mood_entries.where(recorded_at: Date.current.all_month)
+    name.presence || username
+  end
+
+  def visible_bio(viewer = nil)
+    return bio if viewer == self
+    return nil if !profile_visible || anonymity_level == "full_anonymity"
+    return nil if anonymity_level == "partial_anonymity"
+
+    if anonymity_level == "community_only" && viewer.present?
+      shared_communities = communities.where(id: viewer.community_ids)
+      return nil unless shared_communities.any?
+    end
+
+    bio
+  end
+
+  def avatar_for_display(viewer = nil)
+    return avatar if avatar.attached? && (viewer == self || (profile_visible && anonymity_level == "fully_visible"))
+
+    # Otherwise return a default anonymous avatar
+    "anonymous_avatar.png"
+  end
+
+  def display_info_for(viewer = nil, context = :general)
+    # Self always sees everything
+    return {
+      name: name,
+      username: username,
+      bio: bio,
+      avatar: avatar_for_display(viewer),
+      anonymous: false,
+      anonymous_identifier: anonymous_identifier
+    } if viewer == self
+
+    case context
+    when :compliment_sender
+      return {name: anonymous_identifier, anonymous: true} unless profile_visible
+      {name: name || username, anonymous: false}
+
+    when :community_member
+      return {name: anonymous_identifier, anonymous: true} if anonymity_level == "full_anonymity"
+
+      if anonymity_level == "community_only" && viewer.present?
+        shared_communities = communities.where(id: viewer.community_ids)
+        return {name: anonymous_identifier, anonymous: true} unless shared_communities.any?
+      end
+
+      return {name: username, anonymous: true} if anonymity_level == "partial_anonymity"
+
+      {
+        name: name,
+        username: username,
+        bio: bio,
+        avatar: avatar_for_display(viewer),
+        anonymous: false
+      }
+
+    when :public
+      return {name: anonymous_identifier, anonymous: true} unless anonymity_level == "fully_visible"
+
+      {
+        name: name,
+        username: username,
+        bio: bio,
+        anonymous: false
+      }
+
+    else # :general
+      return {name: anonymous_identifier, anonymous: true} unless profile_visible
+      {name: name || username, anonymous: false}
+    end
+  end
+
+  def visible_to?(viewer, context = :general)
+    return true if viewer == self
+
+    case context
+    when :community_member
+      return false if anonymity_level == "full_anonymity"
+
+      if anonymity_level == "community_only" && viewer.present?
+        shared_communities = communities.where(id: viewer.community_ids)
+        return shared_communities.any?
+      end
+
+      return anonymity_level != "partial_anonymity"
+
+    when :public
+      return anonymity_level == "fully_visible"
     else
-      mood_entries
+      return profile_visible
     end
-
-    entries.average(:value)&.round(2) || nil
-  end
-
-  def mood_trend(days = 14)
-    MoodEntry.trend_data(self, days)
-  end
-
-  def mood_status
-    return "Unknown" if current_mood.nil?
-
-    MoodEntry::MOOD_LABELS[current_mood] || "Unknown"
-  end
-
-  def mood_icon
-    return "❓" if current_mood.nil?
-
-    case current_mood
-    when 1 then "😢"
-    when 2 then "🙁"
-    when 3 then "😐"
-    when 4 then "🙂"
-    when 5 then "😄"
-    else "❓"
-    end
-  end
-
-  def mood_freshness
-    return :stale if mood_updated_at.nil?
-
-    hours_ago = ((Time.current - mood_updated_at) / 1.hour).round
-
-    if hours_ago < 6
-      :fresh
-    elsif hours_ago < 24
-      :recent
-    else
-      :stale
-    end
-  end
-
-  def available_categories(community = nil)
-    Category.available_for(self, community)
   end
 
   private
 
   def set_anonymous_identifier
-    self.anonymous_identifier = loop do
-      identifier = SecureRandom.alphanumeric(8)
-      break identifier unless User.exists?(anonymous_identifier: identifier)
+    return if anonymous_identifier.present?
+
+    loop do
+      adjectives = ['Mysterious', 'Anonymous', 'Enigmatic', 'Hidden', 'Secret', 'Incognito']
+      nouns = ['Penguin', 'Dolphin', 'Falcon', 'Tiger', 'Phoenix', 'Voyager']
+      number = rand(1..999)
+
+      self.anonymous_identifier = "#{adjectives.sample}#{nouns.sample}#{number}"
+      break unless User.exists?(anonymous_identifier: anonymous_identifier)
     end
   end
 
-  def extract_email_domain
-    self.email_domain = email.split('@').last if email.present? && email.include?('@')
+  def anonymous_identifier_format
+    return unless anonymous_identifier.present?
+
+    # Ensure it follows the pattern that doesn't leak personal info
+    unless anonymous_identifier.match?(/\A[A-Z][a-z]+[A-Z][a-z]+\d+\z/)
+      errors.add(:anonymous_identifier, "doesn't follow required format")
+    end
   end
 
-  def attach_avatar
-    avatar.attach(avatar_upload) if avatar_upload.present?
+  def track_privacy_changes
+    if saved_change_to_profile_visible? || saved_change_to_anonymity_level?
+      privacy_setting_changes.create(
+        changed_by: self,
+        previous_visibility: profile_visible_before_last_save ? "visible" : "hidden",
+        current_visibility: profile_visible ? "visible" : "hidden",
+        previous_anonymity_level: anonymity_level_before_last_save,
+        current_anonymity_level: anonymity_level,
+        changed_at: Time.current
+        )
+    end
   end
 end
