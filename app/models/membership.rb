@@ -1,16 +1,26 @@
 class Membership < ApplicationRecord
   belongs_to :user
-  belongs_to :community, counter_cache: :members_count
+  belongs_to :community
 
   validates :user_id, uniqueness: { scope: :community_id, message: "is already a member of this community" }
-  validates :role, inclusion: { in: %w(member moderator admin), message: "%{value} is not a valid role" }
 
-  before_validation :set_defaults
+  enum role: {
+    member: 0,
+    moderator: 1,
+    admin: 2
+  }
+
+  enum status: {
+    pending: 0,
+    active: 1,
+    blocked: 2
+  }
+
+  before_create :set_joined_at, if: -> { status.to_sym == :active }
 
   private
 
-  def set_defaults
-    self.role ||= 'member'
-    self.joined_at ||= Time.current
+  def set_joined_at
+    self.joined_at = Time.current
   end
 end

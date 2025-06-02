@@ -6,16 +6,37 @@
 
     </title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
-      <%= csrf_meta_tags %>
-      <%= csp_meta_tag %>
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
 
-      <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
-      <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
 
   </head>
   <body>
+    <nav>
+      <% if user_signed_in? %>
+      <%= link_to 'Profile', profile_path %>
+      <%= link_to 'Edit Account', edit_user_registration_path %>
+      <%= button_to 'Sign out', destroy_user_session_path, method: :delete %>
+      <% else %>
+      <%= link_to 'Sign in', new_user_session_path %>
+      <%= link_to 'Sign up', new_user_registration_path %>
+      <% end %>
+    </nav>
     <main class="container mx-auto mt-28 px-5 flex">
       <%= yield %>
     </main>
   </body>
 </html>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log("DOM fully loaded and parsed");
+
+// Log all controllers registered with Stimulus
+    const controllers = document.querySelectorAll('[data-controller]');
+    console.log(`Found ${controllers.length} Stimulus controllers:`,
+      Array.from(controllers).map(el => el.dataset.controller));
+  });
+
+</script>

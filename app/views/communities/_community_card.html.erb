@@ -1,0 +1,37 @@
+<div>
+  <div class="px-6 py-4"> <div class="font-bold text-xl mb-2"> <%= link_to community.name, community_path(community), class: "hover:text-indigo-600" %>
+  </div>
+  <p>
+    <span>
+      <%= community.community_type.titleize %>
+    </span>
+    <% if community.privacy_level != 'public' %>
+    <span>
+      <%= community.privacy_level.titleize %>
+    </span>
+    <% end %>
+  </p>
+  <p>
+    <%= pluralize(community.users.count, 'member') %>
+  </p>
+  <p>
+    <%= truncate(community.description, length: 100) %>
+  </p>
+  <div>
+    <% if membership.present? %>
+      <% if membership.status == 'pending' %>
+        <span>
+          Membership pending
+        </span>
+      <% else %>
+        <%= button_to "Leave", leave_community_path(community), method: :delete,
+        class: "text-red-600 hover:text-red-800 text-sm",
+          data: { confirm: "Are you sure you want to leave this community?" } %>
+      <% end %>
+    <% else %>
+      <%= button_to "Join", join_community_path(community), method: :post,
+        class: "bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-3 py-1 rounded" %>
+    <% end %>
+    </div>
+  </div>
+</div>
