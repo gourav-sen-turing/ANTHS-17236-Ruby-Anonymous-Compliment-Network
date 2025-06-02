@@ -1,7 +1,7 @@
 class User < ApplicationRecord
   # Include default devise modules
   devise :database_authenticatable, :registerable,
-         :recoverable, :rememberable, :validatable
+  :recoverable, :rememberable, :validatable
 
   has_many :memberships, dependent: :destroy
   has_many :communities, through: :memberships
@@ -17,11 +17,13 @@ class User < ApplicationRecord
   has_many :created_categories, class_name: 'Category', foreign_key: 'created_by_id', dependent: :nullify
 
   # Validations
-  validates :username, presence: true, uniqueness: true,
+  validates :username, presence: true,
+            uniqueness: { case_sensitive: false },
             length: { minimum: 3, maximum: 30 },
-            format: { with: /\A[a-zA-Z0-9_]+\z/, message: "only allows letters, numbers, and underscores" }
-  validates :role, inclusion: { in: %w(user admin moderator) }
-  validates :mood, inclusion: { in: 1..5 }, allow_nil: true
+            format: { with: /\A[a-zA-Z0-9_]+\z/,
+              message: "only allows letters, numbers, and underscores" }
+              validates :role, inclusion: { in: %w(user admin moderator) }
+              validates :mood, inclusion: { in: 1..5 }, allow_nil: true
 
   # Callbacks
   before_validation :set_anonymous_identifier, on: :create
