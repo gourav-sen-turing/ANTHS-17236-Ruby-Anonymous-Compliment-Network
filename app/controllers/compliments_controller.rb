@@ -1,64 +1,148 @@
 class ComplimentsController < ApplicationController
-  before_action :authenticate_user!, except: [:create_anonymous]
+  before_action :authenticate_user!, except: [:show, :index]
+  before_action :set_compliment, only: [:show]
 
-  # Regular compliment creation (when signed in)
+  def index
+    @compliments = current_user.received_compliments.order(created_at: :desc).page(params[:page])
+  end
+
+  def show
+    # Mark as read if recipient is viewing
+    @compliment.mark_as_read! if current_user == @compliment.recipient
+  end
+
+  def new
+    @compliment = Compliment.new
+    @available_categories = available_categories_for_current_context
+
+    # Preselect recipient if provided via params
+    @compliment.recipient_id = params[:recipient_id] if params[:recipient_id].present?
+
+    respond_to do |format|
+      format.html
+      format.turbo_stream
+    end
+  end
+
   def create
-    @compliment = Compliment.new(compliment_params)
-    @compliment.sender = current_user
+    @compliment = build_compliment_from_params
 
-    # Handle anonymous flag if user wants to remain anonymous
-    if params[:compliment][:anonymous].present?
-      @compliment.anonymous = true
-      @compliment.store_hashed_ip(request.remote_ip)
-    end
-
-    if @compliment.save
-      redirect_to dashboard_path, notice: "Your compliment has been sent!"
-    else
-      render :new
-    end
-  end
-
-  # Special route for completely anonymous compliments (no login required)
-  def create_anonymous
-    @compliment = Compliment.new(anonymous_compliment_params)
-    @compliment.anonymous = true
-    @compliment.store_hashed_ip(request.remote_ip)
-
-    # Verify recipient exists
-    recipient = User.find_by(id: params[:compliment][:recipient_id])
-
-    if recipient && @compliment.save
-      redirect_to root_path, notice: "Your anonymous compliment has been sent!"
-    else
-      @error_message = "Couldn't send compliment. Please try again."
-      render :new_anonymous
+    respond_to do |format|
+      if @compliment.save
+        # Use Turbo Streams to replace the form with success message
+        format.turbo_stream {
+          render turbo_stream: turbo_stream.replace(
+            "new_compliment",
+            partial: "compliments/success"
+          )
+        }
+        format.html { redirect_to dashboard_path, notice: "Your compliment has been sent!" }
+      else
+        @available_categories = available_categories_for_current_context
+        format.turbo_stream {
+          render turbo_stream: turbo_stream.replace(
+            "new_compliment_form",
+            partial: "compliments/form",
+            locals: {
+              compliment: @compliment,
+              categories: @available_categories
+            }
+          )
+        }
+        format.html { render :new }
+      end
     end
   end
 
-  def check_rate_limit
-    # If more than 5 anonymous compliments from same IP hash in last hour, reject
-    return unless params[:anonymous].present?
-
-    hashed_ip = Digest::SHA256.hexdigest(request.remote_ip + Rails.application.secrets.secret_key_base)
-    recent_count = Compliment.where(sender_ip_hash: hashed_ip)
-                            .where("created_at > ?", 1.hour.ago)
-                            .count
-
-    if recent_count >= 5
-      render :rate_limited, status: :too_many_requests
-      return false
+  # Supporting AJAX endpoints for dynamic form behavior
+  def recipients
+    # Find users that are potential recipients (in same communities as current user)
+    @recipients = if params[:query].present?
+      User.where.not(id: current_user.id)
+          .where("name ILIKE ? OR username ILIKE ?", "%#{params[:query]}%", "%#{params[:query]}%")
+          .limit(10)
+    else
+      # Get users from communities the current user belongs to
+      community_ids = current_user.communities.pluck(:id)
+      User.joins(:memberships)
+          .where(memberships: { community_id: community_ids })
+          .where.not(id: current_user.id)
+          .distinct
+          .limit(20)
     end
-    true
+
+    respond_to do |format|
+      format.json {
+        render json: {
+          recipients: @recipients.map { |u| { id: u.id, name: u.name, username: u.username } }
+        }
+      }
+    end
+  end
+
+  def categories
+    # Get relevant categories for the selected recipient
+    recipient = User.find_by(id: params[:recipient_id])
+
+    if recipient
+      # Find system default categories plus any from communities shared with recipient
+      shared_community_ids = current_user.communities.joins(:users)
+                                      .where(users: { id: recipient.id })
+                                      .pluck(:id)
+
+      @categories = Category.where(system_default: true)
+                           .or(Category.where(community_id: shared_community_ids))
+                           .distinct
+    else
+      # Just return system defaults if no recipient selected
+      @categories = Category.where(system_default: true)
+    end
+
+    respond_to do |format|
+      format.json {
+        render json: {
+          categories: @categories.map { |c| { id: c.id, name: c.name } }
+        }
+      }
+    end
   end
 
   private
 
-  def compliment_params
-    params.require(:compliment).permit(:content, :recipient_id, :community_id)
+  def set_compliment
+    @compliment = Compliment.find(params[:id])
   end
 
-  def anonymous_compliment_params
-    params.require(:compliment).permit(:content, :recipient_id, :community_id)
+  def compliment_params
+    params.require(:compliment).permit(:content, :recipient_id, :category_id, :anonymous, :community_id)
+  end
+
+  def build_compliment_from_params
+    compliment = current_user.sent_compliments.build(compliment_params)
+
+    # Handle anonymity
+    if compliment.anonymous?
+      # Generate anonymous token and store hashed IP
+      compliment.generate_anonymous_token
+      compliment.store_hashed_ip(request.remote_ip)
+    end
+
+    compliment
+  end
+
+  def available_categories_for_current_context
+    # If we're creating a compliment for a specific community
+    if params[:community_id].present?
+      community = Community.find_by(id: params[:community_id])
+      return [] unless community
+
+      # Return system defaults plus community-specific categories
+      Category.where(system_default: true)
+              .or(Category.where(community_id: community.id))
+              .distinct
+    else
+      # Just return system defaults for general compliments
+      Category.where(system_default: true)
+    end
   end
 end
