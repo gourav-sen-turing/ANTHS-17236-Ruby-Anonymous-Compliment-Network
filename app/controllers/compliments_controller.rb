@@ -3,7 +3,32 @@ class ComplimentsController < ApplicationController
   before_action :set_compliment, only: [:show]
 
   def index
-    @compliments = current_user.received_compliments.order(created_at: :desc).page(params[:page])
+    @compliments = Compliment.includes(:category, :recipient)
+
+    # Apply category filter if provided
+    if params[:category_id].present?
+      @compliments = @compliments.where(category_id: params[:category_id])
+    end
+
+    # Apply status filter if admin and filter provided
+    if current_user&.admin? && params[:status].present?
+      @compliments = @compliments.where(status: params[:status])
+    end
+
+    # For regular users, only show compliments they sent or received
+    unless current_user&.admin?
+      @compliments = @compliments.where(
+        "recipient_id = ? OR (sender_id = ? AND anonymous = false)",
+        current_user&.id,
+        current_user&.id
+      )
+    end
+
+    # Sort by newest first
+    @compliments = @compliments.order(created_at: :desc)
+
+    # Paginate the results
+    @compliments = @compliments.page(params[:page]).per(12)
   end
 
   def show

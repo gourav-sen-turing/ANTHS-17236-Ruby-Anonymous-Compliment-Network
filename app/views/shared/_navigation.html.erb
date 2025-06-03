@@ -1,0 +1,106 @@
+<nav>
+  <div>
+    <div class="flex items-center justify-between h-16">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <%= link_to root_path, class: "flex items-center" do %>
+          <i class="fas fa-heart text-pink-400 mr-2 text-xl"></i>
+
+          <span>
+            Anonymous Compliments
+
+          </span>
+          <% end %>
+        </div>
+        <div>
+          <%= link_to "Home", root_path, class: "px-3 py-2 rounded-md text-sm font-medium #{current_page?(root_path) ? 'bg-indigo-900 text-white' : 'text-indigo-200 hover:bg-indigo-700 hover:text-white'}" %>
+
+          <%= link_to "Compliments", compliments_path, class: "px-3 py-2 rounded-md text-sm font-medium #{controller_name == 'compliments' ? 'bg-indigo-900 text-white' : 'text-indigo-200 hover:bg-indigo-700 hover:text-white'}" %>
+
+          <%= link_to "Communities", communities_path, class: "px-3 py-2 rounded-md text-sm font-medium #{controller_name == 'communities' ? 'bg-indigo-900 text-white' : 'text-indigo-200 hover:bg-indigo-700 hover:text-white'}" if defined?(communities_path) %>
+
+          <%= link_to "My Mood", mood_entries_path, class: "px-3 py-2 rounded-md text-sm font-medium #{controller_name == 'mood_entries' ? 'bg-indigo-900 text-white' : 'text-indigo-200 hover:bg-indigo-700 hover:text-white'}" if user_signed_in? && defined?(mood_entries_path) %>
+        </div>
+      </div>
+      <div>
+        <% if user_signed_in? %>
+        <!-- Current Mood Indicator -->
+        <div class="mr-4 flex items-center">
+          <span>
+            My Mood:
+
+          </span>
+          <% if current_user.current_mood? %>
+          <div class="w-8 h-8 rounded-full flex items-center justify-center <%= mood_color_class(current_user.current_mood) %>">
+            <%= mood_emoji(current_user.current_mood) %>
+          </div>
+          <% else %>
+          <div>
+            <i class="fas fa-question text-xs"></i>
+
+          </div>
+          <% end %>
+        </div>
+
+        <!-- User Menu -->
+        <div>
+          <div>
+            <button data-action="click->dropdown#toggle" class="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-indigo-800 focus:ring-white" id="user-menu" aria-haspopup="true">
+              <span>
+                Open user menu
+
+              </span>
+              <% if current_user.avatar.attached? %>
+              <%= image_tag current_user.avatar, class: "h-8 w-8 rounded-full" %>
+              <% else %>
+              <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center">
+                <span>
+                  <%= current_user.initials %>
+
+                </span>
+              </div>
+              <% end %>
+              <span>
+                <%= current_user.name %>
+
+              </span>
+              <i class="fas fa-chevron-down text-xs ml-1 text-indigo-300"></i>
+
+            </button>
+          </div>
+          <div>
+            <%= link_to "My Profile", user_path(current_user), class: "block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100", role: "menuitem" %>
+
+            <%= link_to "Log Mood", new_mood_entry_path, class: "block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100", role: "menuitem" if defined?(new_mood_entry_path) %>
+
+            <% if current_user.admin? %>
+            <%= link_to "Admin Dashboard", admin_root_path, class: "block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100", role: "menuitem" if defined?(admin_root_path) %>
+            <% end %>
+
+            <div class="border-t border-gray-100 my-1">
+            </div>
+            <%= button_to "Sign Out", destroy_user_session_path, method: :delete, class: "block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100", role: "menuitem" %>
+          </div>
+        </div>
+        <% else %>
+        <div>
+          <%= link_to "Sign In", new_user_session_path, class: "px-3 py-2 rounded-md text-sm font-medium text-indigo-200 hover:bg-indigo-700 hover:text-white" %>
+          <%= link_to "Sign Up", new_user_registration_path, class: "px-3 py-2 bg-indigo-600 rounded-md text-sm font-medium text-white hover:bg-indigo-500" %>
+        </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</nav>
+<!-- Mobile menu, toggle classes based on menu state -->
+<div>
+  <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3"> <%= link_to "Home", root_path, class: "block px-3 py-2 rounded-md text-base font-medium #{current_page?(root_path) ? 'bg-indigo-800 text-white' : 'text-indigo-200 hover:bg-indigo-600 hover:text-white'}" %>
+    <%= link_to "Compliments", compliments_path, class: "block px-3 py-2 rounded-md text-base font-medium #{controller_name == 'compliments' ? 'bg-indigo-800 text-white' : 'text-indigo-200 hover:bg-indigo-600 hover:text-white'}" %>
+
+    <%= link_to "Communities", communities_path, class: "block px-3 py-2 rounded-md text-base font-medium #{controller_name == 'communities' ? 'bg-indigo-800 text-white' : 'text-indigo-200 hover:bg-indigo-600 hover:text-white'}" if defined?(communities_path) %>
+
+    <%= link_to "My Mood", mood_entries_path, class: "block px-3 py-2 rounded-md text-base font-medium #{controller_name == 'mood_entries' ? 'bg-indigo-800 text-white' : 'text-indigo-200 hover:bg-indigo-600 hover:text-white'}" if user_signed_in? && defined?(mood_entries_path) %>
+  </div>
+</div> <!-- Notifications container for Turbo Stream updates -->
+<div id="notifications" class="fixed top-4 right-4 z-50 space-y-2 max-w-md">
+</div>

@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+
+
 <html>
   <head>
     <title>
@@ -11,32 +12,53 @@
 
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
-
+    <!-- Include Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   </head>
   <body>
-    <nav>
-      <% if user_signed_in? %>
-      <%= link_to 'Profile', profile_path %>
-      <%= link_to 'Edit Account', edit_user_registration_path %>
-      <%= button_to 'Sign out', destroy_user_session_path, method: :delete %>
-      <% else %>
-      <%= link_to 'Sign in', new_user_session_path %>
-      <%= link_to 'Sign up', new_user_registration_path %>
-      <% end %>
-    </nav>
-    <main class="container mx-auto mt-28 px-5 flex">
+    <%= render 'shared/navigation' %>
+
+    <% if notice.present? %>
+    <div>
+      <p>
+        <%= notice %>
+
+      </p>
+    </div>
+    <% end %>
+
+    <% if alert.present? %>
+    <div>
+      <p>
+        <%= alert %>
+
+      </p>
+    </div>
+    <% end %>
+    <main>
       <%= yield %>
     </main>
+    <footer>
+      <div>
+        <div class="flex flex-col md:flex-row justify-between items-center">
+          <div class="text-center md:text-left mb-4 md:mb-0">
+            <p>
+              © <%= Date.today.year %> Anonymous Compliment Network
+
+            </p>
+            <p>
+              Spreading positivity one compliment at a time
+
+            </p>
+          </div>
+          <div>
+            <%= link_to "About", "#", class: "text-gray-300 hover:text-white" %>
+            <%= link_to "Privacy", "#", class: "text-gray-300 hover:text-white" %>
+            <%= link_to "Terms", "#", class: "text-gray-300 hover:text-white" %>
+            <%= link_to "Contact", "#", class: "text-gray-300 hover:text-white" %>
+          </div>
+        </div>
+      </div>
+    </footer>
   </body>
 </html>
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    console.log("DOM fully loaded and parsed");
-
-// Log all controllers registered with Stimulus
-    const controllers = document.querySelectorAll('[data-controller]');
-    console.log(`Found ${controllers.length} Stimulus controllers:`,
-      Array.from(controllers).map(el => el.dataset.controller));
-  });
-
-</script>

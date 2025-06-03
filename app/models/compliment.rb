@@ -1,27 +1,31 @@
 class Compliment < ApplicationRecord
-  # Existing associations
+  # Associations
   belongs_to :recipient, class_name: 'User'
   belongs_to :sender, class_name: 'User', optional: true
   belongs_to :community, optional: true
-  belongs_to :category, optional: true
+  belongs_to :category
 
   has_many :kudos, dependent: :destroy
   has_many :reports, dependent: :destroy
+
+  # Attributes
+  attribute :anonymous, :boolean, default: false
 
   # Enums
   enum status: { pending: 0, approved: 1, rejected: 2, flagged: 3 }
 
   # Validations
-  validates :content, presence: true, length: { minimum: 5, maximum: 500 }
+  validates :content, presence: true,
+  length: { minimum: 5, maximum: 500 }
+  validates :recipient_id, presence: true
+  validates :category_id, presence: true
   validates :anonymous_token, uniqueness: true, allow_nil: true
+  validate :sender_or_anonymous_required
+  validate :category_compatible_with_community
+  validate :not_self_complimenting
 
   # Callbacks
   before_create :generate_anonymous_token, if: :anonymous?
-
-  # Scopes
-  scope :anonymous_only, -> { where(anonymous: true) }
-  scope :identified, -> { where(anonymous: false) }
-  scope :by_category, ->(category_id) { where(category_id: category_id) }
 
   # Methods for anonymity
   def generate_anonymous_token
@@ -44,12 +48,34 @@ class Compliment < ApplicationRecord
     reveal_sender? ? sender.name : "Anonymous"
   end
 
-  # Moderation and safety
+  # Utility methods
   def mark_as_read!
-    update(read_at: Time.current) unless read_at?
+    return if read_at?
+    update(read_at: Time.current)
   end
 
   def mark_as_flagged!
     update(status: :flagged)
+  end
+
+  private
+
+  def sender_or_anonymous_required
+    if !anonymous? && sender.blank?
+      errors.add(:base, "Compliment must either be anonymous or have a sender")
+    end
+  end
+
+  def not_self_complimenting
+    if sender.present? && sender_id == recipient_id
+      errors.add(:recipient_id, "cannot be the same as the sender")
+    end
+  end
+
+  def category_compatible_with_community
+    return unless category.present? && community.present?
+    return if category.system_default? || category.community_id == community_id
+
+    errors.add(:category, "is not available for this community")
   end
 end
