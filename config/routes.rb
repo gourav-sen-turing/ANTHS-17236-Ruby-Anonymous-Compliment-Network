@@ -8,6 +8,7 @@ Rails.application.routes.draw do
     sessions: 'users/sessions'
   }
   resource :profile, only: [:show, :edit, :update]
+  resources :users, only: [:show]
 
   root "home#index"
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
