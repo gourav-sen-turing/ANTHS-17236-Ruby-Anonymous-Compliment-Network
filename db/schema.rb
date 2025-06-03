@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_06_03_071609) do
+ActiveRecord::Schema[7.2].define(version: 2025_06_03_075410) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -48,19 +48,14 @@ ActiveRecord::Schema[7.2].define(version: 2025_06_03_071609) do
     t.string "name", null: false
     t.text "description"
     t.string "icon"
-    t.string "color", default: "#6366F1"
-    t.string "scope", default: "global"
-    t.integer "created_by_id"
+    t.string "color", limit: 7
+    t.text "template_text"
+    t.boolean "system", default: false
     t.integer "community_id"
-    t.integer "compliments_count", default: 0
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["community_id"], name: "index_categories_on_community_id"
-    t.index ["created_by_id"], name: "index_categories_on_created_by_id"
-    t.index ["name", "scope", "community_id"], name: "index_categories_on_name_and_scope_and_community_id", unique: true
-    t.index ["name"], name: "index_categories_on_name"
-    t.index ["scope", "community_id"], name: "index_categories_on_scope_and_community_id"
-    t.index ["scope"], name: "index_categories_on_scope"
+    t.index ["name", "community_id"], name: "index_categories_on_name_and_community_id", unique: true
   end
 
   create_table "categories_compliments", id: false, force: :cascade do |t|
@@ -102,9 +97,11 @@ ActiveRecord::Schema[7.2].define(version: 2025_06_03_071609) do
     t.datetime "updated_at", null: false
     t.string "anonymous_token"
     t.string "sender_ip_hash"
+    t.integer "category_id"
     t.index ["anonymous"], name: "index_compliments_on_anonymous"
     t.index ["anonymous_token"], name: "index_compliments_on_anonymous_token", unique: true
     t.index ["category"], name: "index_compliments_on_category"
+    t.index ["category_id"], name: "index_compliments_on_category_id"
     t.index ["community_id"], name: "index_compliments_on_community_id"
     t.index ["read_at"], name: "index_compliments_on_read_at"
     t.index ["recipient_id"], name: "index_compliments_on_recipient_id"
@@ -206,8 +203,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_06_03_071609) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "categories", "communities"
-  add_foreign_key "categories", "users", column: "created_by_id"
   add_foreign_key "communities", "users", column: "creator_id"
+  add_foreign_key "compliments", "categories"
   add_foreign_key "compliments", "communities"
   add_foreign_key "compliments", "users", column: "recipient_id"
   add_foreign_key "compliments", "users", column: "sender_id"

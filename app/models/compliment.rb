@@ -3,6 +3,7 @@ class Compliment < ApplicationRecord
   belongs_to :recipient, class_name: 'User'
   belongs_to :sender, class_name: 'User', optional: true
   belongs_to :community, optional: true
+  belongs_to :category, optional: true
 
   has_many :kudos, dependent: :destroy
   has_many :reports, dependent: :destroy
@@ -20,7 +21,7 @@ class Compliment < ApplicationRecord
   # Scopes
   scope :anonymous_only, -> { where(anonymous: true) }
   scope :identified, -> { where(anonymous: false) }
-  scope :for_community, ->(community_id) { where(community_id: community_id) }
+  scope :by_category, ->(category_id) { where(category_id: category_id) }
 
   # Methods for anonymity
   def generate_anonymous_token
