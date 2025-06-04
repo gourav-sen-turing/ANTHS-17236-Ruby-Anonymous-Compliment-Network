@@ -103,3 +103,51 @@ user_categories.each do |category_attrs|
 end
 
 puts "Category seeding complete! Created #{Category.count} categories."
+
+
+users_data = [
+  {
+    name: "Alex Johnson",
+    username: "alex_j",
+    email: "alex@example.com",
+    password: "password",
+    bio: "Software developer with a passion for building community tools...",
+    role: 0 # Regular user
+  },
+  # 7 more users with varied backgrounds
+  {
+    name: "Morgan Chen",
+    username: "morgan_c",
+    email: "morgan@example.com",
+    password: "password",
+    bio: "Project manager and team leader...",
+    role: 2 # Admin
+  },
+  # ...
+]
+
+communities_data = [
+  {
+    name: "Tech Supporters",
+    description: "A community for technology professionals to share recognition and support.",
+    founder: created_users.find { |u| u.email == "morgan@example.com" }
+  },
+  # 3 more communities
+]
+
+150.times do |i|
+  sender = created_users.sample
+  recipient = (created_users - [sender]).sample
+  category = categories.sample
+  anonymous = rand < 0.4 # 40% chance of being anonymous
+
+  # More configuration details...
+
+  compliment = Compliment.new(
+    content: generate_compliment_content(category.name),
+    recipient_id: recipient.id,
+    sender_id: anonymous ? nil : sender.id,
+    anonymous: anonymous,
+    # More attributes...
+  )
+end
