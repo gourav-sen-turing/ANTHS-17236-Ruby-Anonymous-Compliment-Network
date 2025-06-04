@@ -141,6 +141,23 @@ if created_users.empty?
   exit
 end
 
+def generate_compliment_content(category_name)
+  case category_name
+  when "Professional Achievement"
+    [
+      "Your work on the recent project was outstanding. The attention to detail really shows!",
+      # Additional template options...
+    ].sample
+  # Cases for other categories...
+  end
+end
+
+def category_has_template_text?
+  Category.column_names.include?('template_text')
+rescue
+  false
+end
+
 150.times do |i|
   sender = created_users.sample
   recipient = (created_users - [sender]).sample
@@ -162,4 +179,5 @@ end
     anonymous: anonymous,
     # More attributes...
   )
+  compliment.save!
 end
