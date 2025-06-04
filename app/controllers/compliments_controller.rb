@@ -149,7 +149,7 @@ class ComplimentsController < ApplicationController
     if compliment.anonymous?
       # Generate anonymous token and store hashed IP
       compliment.generate_anonymous_token
-      compliment.store_hashed_ip(request.remote_ip)
+      compliment.store_hashed_ip(request.remote_ip) if compliment.anonymous?
     end
 
     compliment
