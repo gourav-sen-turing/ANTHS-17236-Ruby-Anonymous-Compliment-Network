@@ -7,3 +7,99 @@
 #   ["Action", "Comedy", "Drama", "Horror"].each do |genre_name|
 #     MovieGenre.find_or_create_by!(name: genre_name)
 #   end
+
+puts "Clearing existing categories..."
+Category.destroy_all
+puts "Creating new categories..."
+
+# System categories that will be available in the compliment form dropdown
+system_categories = [
+  {
+    name: "Professional Achievement",
+    description: "Recognizing excellence and accomplishments in work or professional settings.",
+    system: true
+  },
+  {
+    name: "Personal Growth",
+    description: "Acknowledging someone's self-improvement, learning, or personal development journey.",
+    system: true
+  },
+  {
+    name: "Kindness & Compassion",
+    description: "Highlighting acts of kindness, empathy, or compassion toward others.",
+    system: true
+  },
+  {
+    name: "Creativity & Innovation",
+    description: "Celebrating creative thinking, artistic expression, or innovative problem-solving.",
+    system: true
+  },
+  {
+    name: "Leadership",
+    description: "Recognizing inspiring leadership qualities or actions that motivate others.",
+    system: true
+  },
+  {
+    name: "Teamwork",
+    description: "Acknowledging collaborative efforts, contributions to group success, or being a great team player.",
+    system: true
+  },
+  {
+    name: "Overcoming Challenge",
+    description: "Celebrating resilience and perseverance in the face of obstacles or difficulties.",
+    system: true
+  },
+  {
+    name: "Helpfulness",
+    description: "Recognizing actions that assist, support, or make things easier for others.",
+    system: true
+  },
+  {
+    name: "Positive Attitude",
+    description: "Acknowledging optimism, enthusiasm, or bringing positive energy to situations.",
+    system: true
+  },
+  {
+    name: "Thoughtfulness",
+    description: "Celebrating considerate actions, attention to detail, or going the extra mile for others.",
+    system: true
+  },
+  {
+    name: "Character & Values",
+    description: "Recognizing displays of integrity, honesty, authenticity, or admirable character traits.",
+    system: true
+  },
+  {
+    name: "Friendship",
+    description: "Celebrating qualities that make someone a good friend or the value they bring to relationships.",
+    system: true
+  }
+]
+
+# Create all system categories
+system_categories.each do |category_attrs|
+  category = Category.create!(category_attrs)
+  puts "Created system category: #{category.name}"
+end
+
+# Allow for user-created categories in the future (these won't show in dropdown by default)
+user_categories = [
+  {
+    name: "General Appreciation",
+    description: "A general expression of appreciation or gratitude that doesn't fit other categories.",
+    system: false
+  },
+  {
+    name: "Custom",
+    description: "User-defined custom category for specialized compliments.",
+    system: false
+  }
+]
+
+# Create user categories
+user_categories.each do |category_attrs|
+  category = Category.create!(category_attrs)
+  puts "Created user category: #{category.name}"
+end
+
+puts "Category seeding complete! Created #{Category.count} categories."
