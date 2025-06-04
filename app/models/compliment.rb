@@ -34,9 +34,9 @@ class Compliment < ApplicationRecord
 
   def store_hashed_ip(ip_address)
     return unless anonymous?
-    require 'digest'
-    # Only store a one-way hash of the IP, never the actual IP
-    self.sender_ip_hash = Digest::SHA256.hexdigest(ip_address + Rails.application.secrets.secret_key_base)
+
+    secret = Rails.application.credentials.secret_key_base || Rails.application.config.secret_key_base
+    self.sender_ip_hash = Digest::SHA256.hexdigest("#{ip_address}-#{secret}")
   end
 
   # Sender visibility methods
