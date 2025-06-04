@@ -19,9 +19,9 @@ class Community < ApplicationRecord
   }
 
   enum privacy_level: {
-    public: 0,
+    open: 0,
     restricted: 1,
-    private: 2
+    members_only: 2
   }
 
   before_validation :generate_slug, if: -> { slug.blank? && name.present? }
