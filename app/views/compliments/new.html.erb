@@ -1,14 +1,11 @@
+<%= turbo_frame_tag "new_compliment" do %>
 <div>
-  <div class="bg-white rounded-lg shadow-md p-6"> <div class="compliment-header mb-6">
-    <h1>
-      Send a Compliment
-    </h1>
-    <p>
-      Brighten someone's day with a positive message!
-    </p>
-  </div>
-    <%= turbo_frame_tag "new_compliment" do %>
-      <%= render "compliments/form", compliment: @compliment, categories: @available_categories %>
-    <% end %>
-  </div>
+  <h2>
+    Send a Compliment
+  </h2>
+  <p>
+    Brighten someone's day with a positive message!
+  </p>
+  <%= render 'form', compliment: @compliment %>
 </div>
+<% end %>
