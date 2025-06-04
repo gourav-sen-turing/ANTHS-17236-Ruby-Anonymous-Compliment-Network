@@ -8,6 +8,7 @@ Rails.application.routes.draw do
     sessions: 'users/sessions'
   }
   resource :profile, only: [:show, :edit, :update]
+  resources :users, only: [:show]
 
   root "home#index"
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
@@ -26,6 +27,32 @@ Rails.application.routes.draw do
       delete :leave
     end
   end
+
+  resources :compliments, only: [:new, :create, :show, :index] do
+    member do
+      post 'kudos', to: 'compliments#add_kudos'
+      delete 'kudos', to: 'compliments#remove_kudos'
+      post 'report', to: 'compliments#report'
+      patch 'read', to: 'compliments#mark_as_read'
+    end
+
+    collection do
+      get 'recipients', to: 'compliments#recipients'
+      get 'categories', to: 'compliments#categories'
+    end
+  end
+
+  # API routes for Turbo/Stimulus
+  namespace :api do
+    resources :categories, only: [] do
+      member do
+        get 'templates'
+      end
+    end
+  end
+
+  # Dashboard route
+  get 'dashboard', to: 'dashboard#index'
 
   # Defines the root path route ("/")
   # root "posts#index"

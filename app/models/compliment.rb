@@ -3,132 +3,79 @@ class Compliment < ApplicationRecord
   belongs_to :recipient, class_name: 'User'
   belongs_to :sender, class_name: 'User', optional: true
   belongs_to :community, optional: true
-
-  belongs_to :sender, class_name: 'User', optional: true
-  belongs_to :recipient, class_name: 'User'
-  attribute :anonymous_send, :boolean, default: false
-
-  def sender_display_name(viewer = nil)
-    return "Anonymous" if anonymous_send || sender.nil?
-    sender.display_name(viewer)
-  end
+  belongs_to :category
 
   has_many :kudos, dependent: :destroy
   has_many :reports, dependent: :destroy
 
-  has_many :mood_entries
+  # Attributes
+  attribute :anonymous, :boolean, default: false
 
-  has_and_belongs_to_many :categories
+  # Enums
+  enum status: { pending: 0, approved: 1, rejected: 2, flagged: 3 }
 
   # Validations
-  validates :content, presence: true, length: { in: 10..1000 }
-  validates :status, inclusion: { in: %w(pending approved rejected) }
-  validates :category, inclusion: {
-    in: %w(professional personal achievement kindness helpful creative other),
-    allow_blank: true
-  }
-
-  # Scopes
-  scope :pending, -> { where(status: 'pending') }
-  scope :approved, -> { where(status: 'approved') }
-  scope :rejected, -> { where(status: 'rejected') }
-  scope :unread, -> { where(read_at: nil) }
-  scope :read, -> { where.not(read_at: nil) }
-  scope :anonymous_only, -> { where(anonymous: true) }
-  scope :identified, -> { where(anonymous: false) }
-  scope :in_community, ->(community) { where(community: community) }
-  scope :by_category, ->(category) { where(category: category) }
+  validates :content, presence: true,
+  length: { minimum: 5, maximum: 500 }
+  validates :recipient_id, presence: true
+  validates :category_id, presence: true
+  validates :anonymous_token, uniqueness: true, allow_nil: true
+  validate :sender_or_anonymous_required
+  validate :category_compatible_with_community
+  validate :not_self_complimenting
 
   # Callbacks
-  before_validation :set_defaults
-  after_create :notify_recipient
+  before_create :generate_anonymous_token, if: :anonymous?
 
-  # Additional associations for ActionCable notifications
-  has_many :notifications, as: :subject, dependent: :destroy
-
-  # Instance methods
-  def read?
-    read_at.present?
+  # Methods for anonymity
+  def generate_anonymous_token
+    self.anonymous_token = SecureRandom.uuid
   end
 
-  def unread?
-    !read?
+  def store_hashed_ip(ip_address)
+    return unless anonymous?
+    require 'digest'
+    # Only store a one-way hash of the IP, never the actual IP
+    self.sender_ip_hash = Digest::SHA256.hexdigest(ip_address + Rails.application.secrets.secret_key_base)
   end
 
-  def mark_as_read!
-    return if read?
-    update(read_at: Time.current)
-  end
-
-  def approve!
-    update(status: 'approved')
-    notify_recipient if recipient.present?
-  end
-
-  def reject!
-    update(status: 'rejected')
+  # Sender visibility methods
+  def reveal_sender?
+    !anonymous? && sender.present?
   end
 
   def sender_name
-    return "Anonymous" if anonymous?
-    sender&.name || "Unknown"
+    reveal_sender? ? sender.name : "Anonymous"
   end
 
-  def add_kudo!(user)
-    kudos.create(user: user)
+  # Utility methods
+  def mark_as_read!
+    return if read_at?
+    update(read_at: Time.current)
   end
 
-  def report!(user, reason = nil)
-    reports.create(reporter: user, reason: reason)
-  end
-
-  # Check for inappropriate content using simple pattern matching
-  # In a real app, you might use a content moderation service or AI
-  def potentially_inappropriate?
-    inappropriate_patterns = [
-      /\b(hate|racist|sexist|violent)\b/i,
-      # Add more patterns or integrate with an external filtering service
-    ]
-
-    inappropriate_patterns.any? { |pattern| content.match?(pattern) }
-  end
-
-  def mood_impact(window_hours = 24)
-    MoodEntry.compliment_impact(self, window_hours)
-  end
-
-  def category_names
-    categories.pluck(:name).join(", ")
-  end
-
-  # Method to assign categories by names
-  def category_list=(names)
-    self.categories = names.split(",").map do |name|
-      Category.find_or_create_by!(name: name.strip, scope: 'global')
-    end
-  end
-
-  def category_list
-    categories.pluck(:name).join(", ")
+  def mark_as_flagged!
+    update(status: :flagged)
   end
 
   private
 
-  def set_defaults
-    self.status ||= potentially_inappropriate? ? 'pending' : 'approved'
+  def sender_or_anonymous_required
+    if !anonymous? && sender.blank?
+      errors.add(:base, "Compliment must either be anonymous or have a sender")
+    end
   end
 
-  def notify_recipient
-    return unless status == 'approved'
-    return unless recipient.present?
+  def not_self_complimenting
+    if sender.present? && sender_id == recipient_id
+      errors.add(:recipient_id, "cannot be the same as the sender")
+    end
+  end
 
-    # This would typically use ActionCable or Turbo Streams in a real implementation
-    # Just a placeholder for now
-    Notification.create(
-      recipient: recipient,
-      actor: anonymous? ? nil : sender,
-      action: "sent",
-      subject: self
-    )
+  def category_compatible_with_community
+    return unless category.present? && community.present?
+    return if category.system_default? || category.community_id == community_id
+
+    errors.add(:category, "is not available for this community")
   end
 end

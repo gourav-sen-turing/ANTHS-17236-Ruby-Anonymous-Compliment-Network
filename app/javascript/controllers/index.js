@@ -1,7 +1,4 @@
-import { application } from "./application"
-
-// Import controllers
-import UsernameValidationController from "./username_validation_controller"
-
-// Register controllers
-application.register("username-validation", UsernameValidationController)
+// Import and register all your controllers from the importmap via controllers/**/*_controller
+import { application } from "controllers/application"
+import { eagerLoadControllersFrom } from "@hotwired/stimulus-loading"
+eagerLoadControllersFrom("controllers", application)

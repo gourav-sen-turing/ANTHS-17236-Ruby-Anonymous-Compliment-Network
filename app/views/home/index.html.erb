@@ -1,22 +1,13 @@
 <div>
-  <div class="text-center">
-    <h1>
+  <h1>
+    <span>
       Anonymous Compliment Network
-    </h1>
-    <p>
-      Spread positivity anonymously and track its impact on community well-being.
-    </p>
-    <div class="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
-      <div class="rounded-md shadow">
-        <a>
-          Get Started
-        </a>
-      </div>
-      <div>
-        <a>
-          Learn More
-        </a>
-      </div>
-    </div>
+
+    </span>
+  </h1>
+  <p>
+    Spread positivity anonymously and track its impact on community well-being.
+  </p>
+  <div class="mt-8 flex justify-center"> <%= link_to "Get Started", new_compliment_path, class: "inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700" %> <%= link_to "Learn More", "#features", class: "ml-3 inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-purple-600 bg-white hover:bg-gray-50" %>
   </div>
 </div>

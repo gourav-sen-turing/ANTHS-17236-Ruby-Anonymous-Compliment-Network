@@ -1,0 +1,215 @@
+<div>
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8"> <!-- User profile header --> <div class="bg-white shadow rounded-lg overflow-hidden mb-8"> <div class="p-6"> <div class="flex flex-col md:flex-row"> <div class="flex-shrink-0 mb-4 md:mb-0 md:mr-6"> <% if @user.avatar.attached? %> <%= image_tag @user.avatar, class: "h-24 w-24 rounded-full" %> <% else %> <div class="h-24 w-24 rounded-full bg-indigo-600 flex items-center justify-center">
+    <span>
+      <%= @user.initials %>
+
+    </span>
+  </div>
+  <% end %>
+</div>
+<div>
+  <div class="flex flex-col md:flex-row md:justify-between md:items-center">
+    <h1>
+      <%= @user.name %>
+      <span>
+        @<%= @user.username %>
+
+      </span>
+      <% if @user == current_user %>
+      <%= link_to edit_user_registration_path, class: "ml-2 text-sm text-indigo-600 hover:text-indigo-800" do %>
+      <i class="fas fa-pencil-alt"></i>
+
+      <span>
+        Edit Profile
+
+      </span>
+      <% end %>
+      <% end %>
+    </h1>
+    <div class="flex items-center">
+      <% if @user.current_mood? %>
+      <div class="flex items-center">
+        <span>
+          Current Mood:
+
+        </span>
+        <div class="w-8 h-8 rounded-full flex items-center justify-center <%= mood_color_class(@user.current_mood) %>">
+          <%= mood_emoji(@user.current_mood) %>
+        </div>
+        <span>
+          <%= time_ago_in_words(@user.mood_updated_at) %> ago
+        </span>
+      </div>
+      <% end %>
+    </div>
+  </div>
+
+  <% if @user.bio.present? %>
+  <div>
+    <%= simple_format @user.bio %>
+  </div>
+  <% end %>
+  <div>
+    <div>
+      <span>
+        <%= @user.received_compliments.count %>
+
+      </span>
+      compliments received
+    </div>
+    <% if @user == current_user %>
+    <div>
+      <span>
+        <%= @user.sent_compliments.count %>
+
+      </span>
+      compliments sent
+    </div>
+    <% end %>
+    <div>
+      <span>
+        <%= @user.communities.count %>
+
+      </span>
+      communities
+    </div>
+  </div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Mood chart (if viewing own profile or permitted) -->
+<% if @user == current_user && @mood_entries.any? %>
+<div>
+  <div class="px-6 py-4 border-b border-gray-200">
+    <h2>
+      Mood History
+
+    </h2>
+  </div>
+  <div>
+    <div class="h-64" data-controller="mood-chart"
+    data-mood-chart-dates-value="<%= @mood_entries.map { |entry| entry.created_at.strftime('%b %d') }.to_json %>"
+    data-mood-chart-values-value="<%= @mood_entries.map(&:value).to_json %>">
+    <canvas data-mood-chart-target="canvas"></canvas>
+
+  </div>
+</div>
+</div>
+<% end %>
+
+<!-- Received compliments -->
+<div>
+  <div class="px-6 py-4 border-b border-gray-200">
+    <h2>
+      Received Compliments
+
+    </h2>
+  </div>
+  <div>
+    <% if @received_compliments.any? %>
+    <% @received_compliments.each do |compliment| %>
+    <div class="p-6">
+      <div class="flex justify-between mb-2">
+        <div class="flex items-center">
+          <span>
+            ">
+            <%= compliment.category.name %>
+
+          </span>
+          <span>
+            <%= time_ago_in_words(compliment.created_at) %> ago
+          </span>
+        </div>
+        <% if compliment.sender && !compliment.anonymous? %>
+        <%= link_to user_path(compliment.sender), class: "text-sm text-indigo-600 hover:text-indigo-800" do %>
+        From: <%= compliment.sender.name %>
+        <% end %>
+        <% else %>
+        <span>
+          From: Anonymous
+
+        </span>
+        <% end %>
+      </div>
+      <div>
+        <%= simple_format compliment.content %>
+      </div>
+      <div>
+        <div class="text-gray-500 text-sm flex items-center">
+          <i class="far fa-heart mr-1"></i>
+
+          <%= compliment.kudos_count %>
+        </div>
+      </div>
+    </div>
+    <% end %>
+    <div>
+      <%= paginate @received_compliments, param_name: 'received_page' %>
+    </div>
+    <% else %>
+    <div>
+      No compliments received yet.
+    </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Sent compliments (visible only on own profile) -->
+<% if current_user == @user %>
+<div>
+  <div class="px-6 py-4 border-b border-gray-200">
+    <h2>
+      Sent Compliments
+
+    </h2>
+    <p>
+      (Non-anonymous only)
+
+    </p>
+  </div>
+  <div>
+    <% if @sent_compliments && @sent_compliments.any? %>
+    <% @sent_compliments.each do |compliment| %>
+    <div class="p-6">
+      <div class="flex justify-between mb-2">
+        <div class="flex items-center">
+          <span>
+            ">
+            <%= compliment.category.name %>
+
+          </span>
+          <span>
+            <%= time_ago_in_words(compliment.created_at) %> ago
+          </span>
+        </div>
+        <%= link_to user_path(compliment.recipient), class: "text-sm text-indigo-600 hover:text-indigo-800" do %>
+        To: <%= compliment.recipient.name %>
+        <% end %>
+      </div>
+      <div>
+        <%= simple_format compliment.content %>
+      </div>
+      <div>
+        <div class="text-gray-500 text-sm flex items-center">
+          <i class="far fa-heart mr-1"></i>
+
+          <%= compliment.kudos_count %>
+        </div>
+      </div>
+    </div>
+    <% end %>
+    <div>
+      <%= paginate @sent_compliments, param_name: 'sent_page' %>
+    </div>
+    <% else %>
+    <div>
+      No non-anonymous compliments sent yet.
+    </div>
+    <% end %>
+  </div>
+</div>
+<% end %>
+</div>
+</div>

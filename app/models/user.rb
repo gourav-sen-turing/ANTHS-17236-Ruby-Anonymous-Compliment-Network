@@ -104,6 +104,27 @@ class User < ApplicationRecord
     memberships.exists?(community: community, role: [:moderator, :admin]) || created_communities.exists?(id: community.id)
   end
 
+  def initials
+    if name.present?
+      # Split name by spaces and take first letter of first and last components
+      name_parts = name.split
+      if name_parts.length >= 2
+        "#{name_parts.first[0]}#{name_parts.last[0]}".upcase
+      else
+        name_parts.first[0].upcase
+      end
+    elsif username.present?
+      # If no name, use the first letter of username
+      username[0].upcase
+    else
+      # Fallback if neither name nor username are available
+      "U"
+    end
+  rescue
+    # Ensure we always return something even if there's an error
+    "U"
+  end
+
   private
 
   def set_anonymous_identifier
