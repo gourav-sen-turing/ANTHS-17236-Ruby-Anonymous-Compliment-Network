@@ -104,7 +104,7 @@ end
 
 puts "Category seeding complete! Created #{Category.count} categories."
 
-
+created_users = []
 users_data = [
   {
     name: "Alex Johnson",
@@ -126,25 +126,37 @@ users_data = [
   # ...
 ]
 
-communities_data = [
-  {
-    name: "Tech Supporters",
-    description: "A community for technology professionals to share recognition and support.",
-    founder: created_users.find { |u| u.email == "morgan@example.com" }
-  },
-  # 3 more communities
-]
+users_data.each do |user_data|
+  # Find or create the user to avoid errors on re-runs
+  user = User.find_by(email: user_data[:email]) || User.create!(user_data)
+  user.confirm if user.respond_to?(:confirm)
+
+  # Set mood data...
+  created_users << user
+end
+
+# Ensure we have users before proceeding
+if created_users.empty?
+  puts "Error: No users were created. Exiting seed process."
+  exit
+end
 
 150.times do |i|
   sender = created_users.sample
   recipient = (created_users - [sender]).sample
+  categories = Category.all
+  if categories.empty?
+    puts "Warning: No categories found. Please run the category seed first."
+    categories = [Category.create!(name: "General", description: "General compliment", system: true)]
+  end
+  byebug
   category = categories.sample
   anonymous = rand < 0.4 # 40% chance of being anonymous
 
   # More configuration details...
 
   compliment = Compliment.new(
-    content: generate_compliment_content(category.name),
+    content: generate_compliment_content(category&.name),
     recipient_id: recipient.id,
     sender_id: anonymous ? nil : sender.id,
     anonymous: anonymous,
