@@ -21,7 +21,7 @@ class ComplimentsController < ApplicationController
         "recipient_id = ? OR (sender_id = ? AND anonymous = false)",
         current_user&.id,
         current_user&.id
-      )
+        )
     end
 
     # Sort by newest first
@@ -38,43 +38,36 @@ class ComplimentsController < ApplicationController
 
   def new
     @compliment = Compliment.new
-    @available_categories = available_categories_for_current_context
-
-    # Preselect recipient if provided via params
-    @compliment.recipient_id = params[:recipient_id] if params[:recipient_id].present?
-
-    respond_to do |format|
-      format.html
-      format.turbo_stream
-    end
   end
 
   def create
-    @compliment = build_compliment_from_params
+    @compliment = Compliment.new(compliment_params)
+    @compliment.sender = current_user unless @compliment.anonymous?
 
-    respond_to do |format|
-      if @compliment.save
-        # Use Turbo Streams to replace the form with success message
+    if @compliment.save
+      respond_to do |format|
+        format.html { redirect_to compliments_path, notice: "Compliment was successfully sent." }
+        format.turbo_stream {
+          flash.now[:notice] = "Compliment was successfully sent."
+          render turbo_stream: [
+            turbo_stream.replace("new_compliment",
+              partial: "compliments/form",
+              locals: { compliment: Compliment.new }
+              ),
+            turbo_stream.prepend("flash", partial: "shared/flash")
+          ]
+        }
+      end
+    else
+      respond_to do |format|
+        format.html { render :new, status: :unprocessable_entity }
         format.turbo_stream {
           render turbo_stream: turbo_stream.replace(
             "new_compliment",
-            partial: "compliments/success"
-          )
-        }
-        format.html { redirect_to dashboard_path, notice: "Your compliment has been sent!" }
-      else
-        @available_categories = available_categories_for_current_context
-        format.turbo_stream {
-          render turbo_stream: turbo_stream.replace(
-            "new_compliment_form",
             partial: "compliments/form",
-            locals: {
-              compliment: @compliment,
-              categories: @available_categories
-            }
-          )
+            locals: { compliment: @compliment }
+            )
         }
-        format.html { render :new }
       end
     end
   end
@@ -84,16 +77,16 @@ class ComplimentsController < ApplicationController
     # Find users that are potential recipients (in same communities as current user)
     @recipients = if params[:query].present?
       User.where.not(id: current_user.id)
-          .where("name ILIKE ? OR username ILIKE ?", "%#{params[:query]}%", "%#{params[:query]}%")
-          .limit(10)
+      .where("name ILIKE ? OR username ILIKE ?", "%#{params[:query]}%", "%#{params[:query]}%")
+      .limit(10)
     else
       # Get users from communities the current user belongs to
       community_ids = current_user.communities.pluck(:id)
       User.joins(:memberships)
-          .where(memberships: { community_id: community_ids })
-          .where.not(id: current_user.id)
-          .distinct
-          .limit(20)
+      .where(memberships: { community_id: community_ids })
+      .where.not(id: current_user.id)
+      .distinct
+      .limit(20)
     end
 
     respond_to do |format|
@@ -112,12 +105,12 @@ class ComplimentsController < ApplicationController
     if recipient
       # Find system default categories plus any from communities shared with recipient
       shared_community_ids = current_user.communities.joins(:users)
-                                      .where(users: { id: recipient.id })
-                                      .pluck(:id)
+      .where(users: { id: recipient.id })
+      .pluck(:id)
 
       @categories = Category.where(system_default: true)
-                           .or(Category.where(community_id: shared_community_ids))
-                           .distinct
+      .or(Category.where(community_id: shared_community_ids))
+      .distinct
     else
       # Just return system defaults if no recipient selected
       @categories = Category.where(system_default: true)
@@ -139,7 +132,7 @@ class ComplimentsController < ApplicationController
   end
 
   def compliment_params
-    params.require(:compliment).permit(:content, :recipient_id, :category_id, :anonymous, :community_id)
+    params.require(:compliment).permit(:recipient_id, :category_id, :content, :anonymous, :community_id)
   end
 
   def build_compliment_from_params
@@ -163,8 +156,8 @@ class ComplimentsController < ApplicationController
 
       # Return system defaults plus community-specific categories
       Category.where(system_default: true)
-              .or(Category.where(community_id: community.id))
-              .distinct
+      .or(Category.where(community_id: community.id))
+      .distinct
     else
       # Just return system defaults for general compliments
       Category.where(system_default: true)
