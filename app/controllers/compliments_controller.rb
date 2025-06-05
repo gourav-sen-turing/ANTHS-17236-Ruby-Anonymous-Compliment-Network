@@ -27,21 +27,11 @@ class ComplimentsController < ApplicationController
   # POST /compliments
   def create
     @compliment = current_user.sent_compliments.new(compliment_params)
-
-    respond_to do |format|
-      if @compliment.save
-        format.html { redirect_to compliments_path, notice: "Compliment was successfully sent!" }
-        format.turbo_stream {
-          flash.now[:notice] = "Compliment was successfully sent!"
-          # Correct way to implement client-side redirect after Turbo Stream submission
-          render turbo_stream: [
-            turbo_stream.prepend("flash", partial: "shared/flash"),
-            turbo_stream.update("redirect_placeholder",
-              template: "shared/turbo_redirect",
-              locals: { redirect_url: compliment_path(@compliment) })
-          ]
-        }
-      else
+    if @compliment.save
+      flash[:notice] = "Compliment was successfully sent!"
+      redirect_to compliment_path(@compliment)
+    else
+      respond_to do |format|
         format.html { render :new, status: :unprocessable_entity }
         format.turbo_stream {
           flash.now[:alert] = "There was a problem sending your compliment."
