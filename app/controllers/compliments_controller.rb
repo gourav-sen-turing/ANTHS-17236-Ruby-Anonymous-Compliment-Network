@@ -32,7 +32,14 @@ class ComplimentsController < ApplicationController
       if @compliment.save
         format.html { redirect_to compliments_path, notice: "Compliment was successfully sent!" }
         format.turbo_stream {
-          render turbo_stream: turbo_stream.redirect_to(compliment_path(@compliment))
+          flash.now[:notice] = "Compliment was successfully sent!"
+          # Correct way to implement client-side redirect after Turbo Stream submission
+          render turbo_stream: [
+            turbo_stream.prepend("flash", partial: "shared/flash"),
+            turbo_stream.update("redirect_placeholder",
+              template: "shared/turbo_redirect",
+              locals: { redirect_url: compliment_path(@compliment) })
+          ]
         }
       else
         format.html { render :new, status: :unprocessable_entity }
