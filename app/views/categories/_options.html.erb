@@ -1,0 +1,8 @@
+<option>
+  Select a category
+</option>
+<% categories.each do |category| %>
+  <option>
+    <%= category.name %><%= " (System)" if category.system? %>
+  </option>
+<% end %>

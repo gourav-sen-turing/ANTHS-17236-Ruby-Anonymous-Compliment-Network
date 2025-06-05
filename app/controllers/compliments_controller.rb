@@ -41,32 +41,32 @@ class ComplimentsController < ApplicationController
   end
 
   def create
-    @compliment = Compliment.new(compliment_params)
-    @compliment.sender = current_user unless @compliment.anonymous?
+    @compliment = current_user.sent_compliments.new(compliment_params)
 
-    if @compliment.save
-      respond_to do |format|
-        format.html { redirect_to compliments_path, notice: "Compliment was successfully sent." }
-        format.turbo_stream {
-          flash.now[:notice] = "Compliment was successfully sent."
-          render turbo_stream: [
-            turbo_stream.replace("new_compliment",
-              partial: "compliments/form",
-              locals: { compliment: Compliment.new }
-              ),
-            turbo_stream.prepend("flash", partial: "shared/flash")
-          ]
-        }
-      end
-    else
-      respond_to do |format|
+    respond_to do |format|
+      if @compliment.save
+        # Success handling...
+      else
+        # Log detailed validation errors
+        Rails.logger.error "Compliment validation failed: #{@compliment.errors.full_messages.join(', ')}"
+
+        # For debugging, add specific information about category and community
+        if @compliment.errors[:category_id].any? && @compliment.category_id.present? && @compliment.community_id.present?
+          category = Category.find_by(id: @compliment.category_id)
+          community = Community.find_by(id: @compliment.community_id)
+
+          Rails.logger.error "Category: #{category&.name} (ID: #{category&.id}, System: #{category&.system})"
+          Rails.logger.error "Community: #{community&.name} (ID: #{community&.id})"
+        end
+
+        # Render the form with errors
         format.html { render :new, status: :unprocessable_entity }
         format.turbo_stream {
-          render turbo_stream: turbo_stream.replace(
-            "new_compliment",
-            partial: "compliments/form",
-            locals: { compliment: @compliment }
-            )
+          flash.now[:alert] = "There was a problem sending your compliment: #{@compliment.errors.full_messages.join(', ')}"
+          render turbo_stream: [
+            turbo_stream.prepend("flash", partial: "shared/flash"),
+            turbo_stream.replace("new_compliment", partial: "compliments/form", locals: { compliment: @compliment })
+          ]
         }
       end
     end

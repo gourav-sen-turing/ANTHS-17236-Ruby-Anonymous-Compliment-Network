@@ -12,4 +12,8 @@ class Category < ApplicationRecord
   scope :system_categories, -> { where(system: true) }
   scope :community_categories, ->(community_id) { where(community_id: community_id) }
   scope :available_for, ->(community_id) { where(system: true).or(where(community_id: community_id)) }
+
+  def system?
+    system == true
+  end
 end
