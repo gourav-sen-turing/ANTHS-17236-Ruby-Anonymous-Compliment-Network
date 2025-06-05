@@ -34,7 +34,7 @@
     <%= form.label :category_id, "Category" %>
     <% if form.object.community_id.present? %>
     <% community = Community.find(form.object.community_id) %>
-    <% available_categories = Category.where(system: true).or(Category.where(id: community.category_ids)) %>
+    <% available_categories = Category.where(system: true).or(Category.where(community_id: community.id)) %>
     <% else %>
     <% available_categories = Category.where(system: true) %>
     <% end %>

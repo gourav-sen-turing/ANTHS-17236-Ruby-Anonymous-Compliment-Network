@@ -75,14 +75,8 @@ class Compliment < ApplicationRecord
   def category_compatible_with_community
     return if category.nil? || community.nil?
 
-    # Check if the category is system-wide
-    is_system_category = category.system == true
-
-    # Check if the category is explicitly associated with the community
-    is_community_category = category.communities.exists?(community.id)
-
-    # Add error if neither condition is true
-    unless is_system_category || is_community_category
+    # Check if category is system-wide or belongs to the specified community
+    unless category.system? || category.community_id == community.id
       errors.add(:category_id, "is not compatible with the selected community")
     end
   end

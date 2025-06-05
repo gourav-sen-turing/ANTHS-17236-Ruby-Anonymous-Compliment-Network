@@ -4,6 +4,7 @@ class Community < ApplicationRecord
   has_many :memberships, dependent: :destroy
   has_many :users, through: :memberships
   has_many :compliments, dependent: :nullify
+  has_many :categories
 
   validates :name, presence: true, length: { minimum: 3, maximum: 50 }
   validates :slug, presence: true, uniqueness: true,
@@ -32,6 +33,10 @@ class Community < ApplicationRecord
 
   def pending_users
     users.joins(:memberships).where(memberships: { status: :pending })
+  end
+
+  def available_categories
+    Category.where(system: true).or(Category.where(community_id: id))
   end
 
   private
