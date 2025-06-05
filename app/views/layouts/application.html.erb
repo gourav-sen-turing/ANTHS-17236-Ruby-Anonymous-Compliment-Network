@@ -16,7 +16,9 @@
   </head>
   <body>
     <%= render 'shared/navigation' %>
-
+    <div>
+      <%= render "shared/flash" %>
+    </div>
     <% if notice.present? %>
     <div>
       <p>

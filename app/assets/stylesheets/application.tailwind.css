@@ -1,3 +1,59 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@layer components {
+  .flash-message {
+    @apply fixed top-4 right-4 z-50 max-w-sm rounded-lg shadow-lg p-4 mb-4 text-white;
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  .flash-message.notice {
+    @apply bg-green-500;
+  }
+
+  .flash-message.alert {
+    @apply bg-red-500;
+  }
+
+  .flash-inner {
+    @apply flex items-center;
+  }
+
+  .flash-inner svg {
+    @apply mr-2 flex-shrink-0;
+  }
+
+  .flash-inner span {
+    @apply flex-grow;
+  }
+
+  .close-button {
+    @apply ml-2 text-white hover:text-gray-200 focus:outline-none flex-shrink-0;
+  }
+
+  .animate-fade-in-down {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeOut {
+    0% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+  }
+}
