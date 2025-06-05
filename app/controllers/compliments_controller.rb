@@ -27,19 +27,16 @@ class ComplimentsController < ApplicationController
   # POST /compliments
   def create
     @compliment = current_user.sent_compliments.new(compliment_params)
-    if @compliment.save
-      flash[:notice] = "Compliment was successfully sent!"
-      redirect_to compliment_path(@compliment)
-    else
-      respond_to do |format|
+
+    respond_to do |format|
+      if @compliment.save
+        flash.now[:notice] = "Compliment was successfully sent!"
+        format.html { redirect_to compliments_path, notice: "Compliment was successfully sent!" }
+        format.turbo_stream
+      else
+        flash.now[:alert] = "There was a problem sending your compliment."
         format.html { render :new, status: :unprocessable_entity }
-        format.turbo_stream {
-          flash.now[:alert] = "There was a problem sending your compliment."
-          render turbo_stream: [
-            turbo_stream.prepend("flash", partial: "shared/flash"),
-            turbo_stream.replace("new_compliment", partial: "compliments/form", locals: { compliment: @compliment })
-          ]
-        }
+        format.turbo_stream
       end
     end
   end
