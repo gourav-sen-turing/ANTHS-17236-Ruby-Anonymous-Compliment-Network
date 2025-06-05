@@ -32,16 +32,12 @@ class ComplimentsController < ApplicationController
       if @compliment.save
         format.html { redirect_to compliments_path, notice: "Compliment was successfully sent!" }
         format.turbo_stream {
-          flash.now[:notice] = "Compliment was successfully sent!"
-          render turbo_stream: [
-            turbo_stream.prepend("flash", partial: "shared/flash"),
-            turbo_stream.replace("new_compliment", partial: "compliments/form", locals: { compliment: Compliment.new })
-          ]
+          render turbo_stream: turbo_stream.redirect_to(compliment_path(@compliment))
         }
       else
         format.html { render :new, status: :unprocessable_entity }
         format.turbo_stream {
-          flash.now[:alert] = "There was a problem sending your compliment: #{@compliment.errors.full_messages.join(', ')}"
+          flash.now[:alert] = "There was a problem sending your compliment."
           render turbo_stream: [
             turbo_stream.prepend("flash", partial: "shared/flash"),
             turbo_stream.replace("new_compliment", partial: "compliments/form", locals: { compliment: @compliment })
