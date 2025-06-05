@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_06_03_075410) do
+ActiveRecord::Schema[7.2].define(version: 2025_06_05_093348) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -51,11 +51,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_06_03_075410) do
     t.string "color", limit: 7
     t.text "template_text"
     t.boolean "system", default: false
-    t.integer "community_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["community_id"], name: "index_categories_on_community_id"
-    t.index ["name", "community_id"], name: "index_categories_on_name_and_community_id", unique: true
+    t.index ["name"], name: "index_categories_on_name_and_community_id", unique: true
   end
 
   create_table "categories_compliments", id: false, force: :cascade do |t|
@@ -80,6 +78,16 @@ ActiveRecord::Schema[7.2].define(version: 2025_06_03_075410) do
     t.index ["domain"], name: "index_communities_on_domain"
     t.index ["name"], name: "index_communities_on_name"
     t.index ["slug"], name: "index_communities_on_slug", unique: true
+  end
+
+  create_table "community_categories", force: :cascade do |t|
+    t.integer "community_id"
+    t.integer "category_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category_id"], name: "index_community_categories_on_category_id"
+    t.index ["community_id", "category_id"], name: "index_community_categories_on_community_id_and_category_id", unique: true
+    t.index ["community_id"], name: "index_community_categories_on_community_id"
   end
 
   create_table "compliments", force: :cascade do |t|
@@ -202,8 +210,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_06_03_075410) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
-  add_foreign_key "categories", "communities"
   add_foreign_key "communities", "users", column: "creator_id"
+  add_foreign_key "community_categories", "categories"
+  add_foreign_key "community_categories", "communities"
   add_foreign_key "compliments", "categories"
   add_foreign_key "compliments", "communities"
   add_foreign_key "compliments", "users", column: "recipient_id"

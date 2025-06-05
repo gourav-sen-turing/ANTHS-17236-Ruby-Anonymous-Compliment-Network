@@ -1,74 +1,84 @@
 class ComplimentsController < ApplicationController
   before_action :authenticate_user!, except: [:show, :index]
-  before_action :set_compliment, only: [:show]
+  # IMPORTANT: Explicitly exclude the new action or include only necessary actions
+  before_action :set_compliment, only: [:show, :edit, :update, :destroy]
 
   def index
-    @compliments = Compliment.includes(:category, :recipient)
-
-    # Apply category filter if provided
-    if params[:category_id].present?
-      @compliments = @compliments.where(category_id: params[:category_id])
-    end
-
-    # Apply status filter if admin and filter provided
-    if current_user&.admin? && params[:status].present?
-      @compliments = @compliments.where(status: params[:status])
-    end
-
-    # For regular users, only show compliments they sent or received
-    unless current_user&.admin?
-      @compliments = @compliments.where(
-        "recipient_id = ? OR (sender_id = ? AND anonymous = false)",
-        current_user&.id,
-        current_user&.id
-        )
-    end
-
-    # Sort by newest first
-    @compliments = @compliments.order(created_at: :desc)
-
-    # Paginate the results
-    @compliments = @compliments.page(params[:page]).per(12)
-  end
-
-  def show
-    # Mark as read if recipient is viewing
-    @compliment.mark_as_read! if current_user == @compliment.recipient
-  end
-
-  def new
+    @compliments = Compliment.published.order(created_at: :desc).limit(20)
     @compliment = Compliment.new
   end
 
-  def create
-    @compliment = Compliment.new(compliment_params)
-    @compliment.sender = current_user unless @compliment.anonymous?
+  # GET /compliments/1
+  def show
+    # No additional code needed - @compliment is set by the before_action
+  end
 
-    if @compliment.save
-      respond_to do |format|
-        format.html { redirect_to compliments_path, notice: "Compliment was successfully sent." }
+  # GET /compliments/new
+  def new
+    # Create a new instance - does NOT need the set_compliment filter
+    @compliment = Compliment.new
+  end
+
+  # GET /compliments/1/edit
+  def edit
+    # No additional code needed - @compliment is set by the before_action
+  end
+
+  # POST /compliments
+  def create
+    @compliment = current_user.sent_compliments.new(compliment_params)
+
+    respond_to do |format|
+      if @compliment.save
+        flash.now[:notice] = "Compliment was successfully sent!"
+        format.html { redirect_to compliments_path, notice: "Compliment was successfully sent!" }
+        format.turbo_stream
+      else
+        flash.now[:alert] = "There was a problem sending your compliment."
+        format.html { render :new, status: :unprocessable_entity }
+        format.turbo_stream
+      end
+    end
+  end
+
+  # PATCH/PUT /compliments/1
+  def update
+    respond_to do |format|
+      if @compliment.update(compliment_params)
+        format.html { redirect_to @compliment, notice: "Compliment was successfully updated." }
         format.turbo_stream {
-          flash.now[:notice] = "Compliment was successfully sent."
+          flash.now[:notice] = "Compliment was successfully updated!"
           render turbo_stream: [
-            turbo_stream.replace("new_compliment",
-              partial: "compliments/form",
-              locals: { compliment: Compliment.new }
-              ),
-            turbo_stream.prepend("flash", partial: "shared/flash")
+            turbo_stream.prepend("flash", partial: "shared/flash"),
+            turbo_stream.replace("compliment_#{@compliment.id}", partial: "compliments/compliment", locals: { compliment: @compliment })
+          ]
+        }
+      else
+        format.html { render :edit, status: :unprocessable_entity }
+        format.turbo_stream {
+          flash.now[:alert] = "There was a problem updating the compliment."
+          render turbo_stream: [
+            turbo_stream.prepend("flash", partial: "shared/flash"),
+            turbo_stream.replace("edit_compliment_#{@compliment.id}", partial: "compliments/form", locals: { compliment: @compliment })
           ]
         }
       end
-    else
-      respond_to do |format|
-        format.html { render :new, status: :unprocessable_entity }
-        format.turbo_stream {
-          render turbo_stream: turbo_stream.replace(
-            "new_compliment",
-            partial: "compliments/form",
-            locals: { compliment: @compliment }
-            )
-        }
-      end
+    end
+  end
+
+  # DELETE /compliments/1
+  def destroy
+    @compliment.destroy
+
+    respond_to do |format|
+      format.html { redirect_to compliments_url, notice: "Compliment was successfully removed." }
+      format.turbo_stream {
+        flash.now[:notice] = "Compliment was successfully removed."
+        render turbo_stream: [
+          turbo_stream.prepend("flash", partial: "shared/flash"),
+          turbo_stream.remove("compliment_#{@compliment.id}")
+        ]
+      }
     end
   end
 
@@ -132,35 +142,6 @@ class ComplimentsController < ApplicationController
   end
 
   def compliment_params
-    params.require(:compliment).permit(:recipient_id, :category_id, :content, :anonymous, :community_id)
-  end
-
-  def build_compliment_from_params
-    compliment = current_user.sent_compliments.build(compliment_params)
-
-    # Handle anonymity
-    if compliment.anonymous?
-      # Generate anonymous token and store hashed IP
-      compliment.generate_anonymous_token
-      compliment.store_hashed_ip(request.remote_ip) if compliment.anonymous?
-    end
-
-    compliment
-  end
-
-  def available_categories_for_current_context
-    # If we're creating a compliment for a specific community
-    if params[:community_id].present?
-      community = Community.find_by(id: params[:community_id])
-      return [] unless community
-
-      # Return system defaults plus community-specific categories
-      Category.where(system_default: true)
-      .or(Category.where(community_id: community.id))
-      .distinct
-    else
-      # Just return system defaults for general compliments
-      Category.where(system_default: true)
-    end
+    params.require(:compliment).permit(:content, :recipient_id, :category_id, :anonymous, :community_id)
   end
 end
