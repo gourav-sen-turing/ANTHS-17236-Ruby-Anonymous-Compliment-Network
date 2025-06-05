@@ -8,10 +8,10 @@ class SetupManyToManyCategoryCommunity < ActiveRecord::Migration[7.2]
       t.index [:community_id, :category_id], unique: true
     end
 
-    # Migrate existing relationships
+    # Migrate existing relationships with SQLite's datetime() function
     execute <<-SQL
       INSERT INTO community_categories (community_id, category_id, created_at, updated_at)
-      SELECT community_id, id, NOW(), NOW()
+      SELECT community_id, id, datetime('now'), datetime('now')
       FROM categories
       WHERE community_id IS NOT NULL;
     SQL
