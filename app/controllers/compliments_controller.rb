@@ -1,6 +1,6 @@
 class ComplimentsController < ApplicationController
   before_action :authenticate_user!, except: [:show, :index]
-  before_action :set_compliment, only: [:show]
+  before_action :set_compliment, only: [:show, :edit, :update, :destroy]
 
   def index
     @compliments = Compliment.includes(:category, :recipient)
@@ -40,26 +40,21 @@ class ComplimentsController < ApplicationController
     @compliment = Compliment.new
   end
 
+  # POST /compliments
   def create
     @compliment = current_user.sent_compliments.new(compliment_params)
 
     respond_to do |format|
       if @compliment.save
-        # Success handling...
+        format.html { redirect_to compliments_path, notice: "Compliment was successfully sent!" }
+        format.turbo_stream {
+          flash.now[:notice] = "Compliment was successfully sent!"
+          render turbo_stream: [
+            turbo_stream.prepend("flash", partial: "shared/flash"),
+            turbo_stream.replace("new_compliment", partial: "compliments/form", locals: { compliment: Compliment.new })
+          ]
+        }
       else
-        # Log detailed validation errors
-        Rails.logger.error "Compliment validation failed: #{@compliment.errors.full_messages.join(', ')}"
-
-        # For debugging, add specific information about category and community
-        if @compliment.errors[:category_id].any? && @compliment.category_id.present? && @compliment.community_id.present?
-          category = Category.find_by(id: @compliment.category_id)
-          community = Community.find_by(id: @compliment.community_id)
-
-          Rails.logger.error "Category: #{category&.name} (ID: #{category&.id}, System: #{category&.system})"
-          Rails.logger.error "Community: #{community&.name} (ID: #{community&.id})"
-        end
-
-        # Render the form with errors
         format.html { render :new, status: :unprocessable_entity }
         format.turbo_stream {
           flash.now[:alert] = "There was a problem sending your compliment: #{@compliment.errors.full_messages.join(', ')}"
@@ -132,7 +127,7 @@ class ComplimentsController < ApplicationController
   end
 
   def compliment_params
-    params.require(:compliment).permit(:recipient_id, :category_id, :content, :anonymous, :community_id)
+    params.require(:compliment).permit(:content, :recipient_id, :category_id, :anonymous, :community_id)
   end
 
   def build_compliment_from_params
