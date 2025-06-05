@@ -28,7 +28,7 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :compliments, only: [:new, :create, :show, :index] do
+  resources :compliments do
     member do
       post 'kudos', to: 'compliments#add_kudos'
       delete 'kudos', to: 'compliments#remove_kudos'
