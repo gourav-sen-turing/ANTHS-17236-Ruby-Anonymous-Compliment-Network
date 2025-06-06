@@ -1,11 +1,21 @@
 class ComplimentsController < ApplicationController
-  before_action :authenticate_user!, except: [:show, :index]
-  # IMPORTANT: Explicitly exclude the new action or include only necessary actions
+  before_action :authenticate_user!
   before_action :set_compliment, only: [:show, :edit, :update, :destroy]
 
   def index
-    @compliments = Compliment.published.order(created_at: :desc).limit(20)
-    @compliment = Compliment.new
+    begin
+      if current_user.nil?
+        redirect_to new_user_session_path, alert: "You need to sign in before accessing this page."
+        return
+      end
+
+      @compliments = current_user.received_compliments.order(created_at: :desc)
+      @sent_compliments = current_user.sent_compliments.order(created_at: :desc)
+    rescue => e
+      Rails.logger.error "ComplimentsController#index error: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      redirect_to root_path, alert: "There was an error loading your compliments. Please try again."
+    end
   end
 
   # GET /compliments/1

@@ -10,6 +10,11 @@ Rails.application.routes.draw do
   resource :profile, only: [:show, :edit, :update]
   resources :users, only: [:show]
 
+  authenticate :user do
+    resources :compliments
+    # Other authenticated routes
+  end
+
   root "home#index"
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
@@ -27,6 +32,10 @@ Rails.application.routes.draw do
       delete :leave
     end
   end
+
+  get '*path', to: 'application#user_not_authenticated', constraints: lambda { |request|
+    !request.path.start_with?('/users/sign_in', '/users/sign_up', '/users/password')
+  }
 
   resources :compliments do
     member do
