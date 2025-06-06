@@ -3,7 +3,7 @@ class Compliment < ApplicationRecord
   belongs_to :recipient, class_name: 'User'
   belongs_to :sender, class_name: 'User', optional: true
   belongs_to :community, optional: true
-  belongs_to :category
+  belongs_to :category, optional: true
 
   has_many :kudos, dependent: :destroy
   has_many :reports, dependent: :destroy
@@ -18,16 +18,27 @@ class Compliment < ApplicationRecord
   enum :status, [:pending, :published, :flagged, :removed], default: :pending
 
   # Validations
-  validates :content, presence: true, length: { minimum: 5, maximum: 500 }
+  validates :content,
+  presence: { message: "can't be blank - please write your compliment" },
+  length: {
+    minimum: 10,
+    maximum: 500,
+    too_short: "is too short (minimum is %{count} characters) - please share something more meaningful",
+    too_long: "is too long (maximum is %{count} characters) - please be more concise"
+  }
   validates :recipient_id, presence: true
   validates :category_id, presence: true
   validates :anonymous_token, uniqueness: true, allow_nil: true
   validate :sender_or_anonymous_required
   validate :category_compatible_with_community
   validate :not_self_complimenting
+  validate :sender_cannot_be_recipient
+  validate :category_compatible_with_community, if: -> { community_id.present? && category_id.present? }
 
   # Callbacks
   before_create :generate_anonymous_token, if: :anonymous?
+  after_create :increment_counters
+  after_destroy :decrement_counters
 
   # Methods for anonymity
   def generate_anonymous_token
