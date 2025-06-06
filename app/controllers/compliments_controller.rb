@@ -4,8 +4,13 @@ class ComplimentsController < ApplicationController
   before_action :set_compliment, only: [:show, :edit, :update, :destroy]
 
   def index
-    @compliments = Compliment.published.order(created_at: :desc).limit(20)
-    @compliment = Compliment.new
+    # Remove the call to the non-existent 'published' scope
+    # Change this line:
+    # @compliments = Compliment.published.order(created_at: :desc)
+
+    # To this:
+    @compliments = current_user.received_compliments.where(status: 1).order(created_at: :desc)
+    @sent_compliments = current_user.sent_compliments.order(created_at: :desc)
   end
 
   # GET /compliments/1

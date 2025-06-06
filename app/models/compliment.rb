@@ -8,15 +8,17 @@ class Compliment < ApplicationRecord
   has_many :kudos, dependent: :destroy
   has_many :reports, dependent: :destroy
 
+  scope :published, -> { where(status: 1) }
+  scope :from_community, ->(community_id) { where(community_id: community_id) }
+
   # Attributes
   attribute :anonymous, :boolean, default: false
 
   # Enums
-  enum status: { pending: 0, approved: 1, rejected: 2, flagged: 3 }
+  enum :status, [:pending, :published, :flagged, :removed], default: :pending
 
   # Validations
-  validates :content, presence: true,
-  length: { minimum: 5, maximum: 500 }
+  validates :content, presence: true, length: { minimum: 5, maximum: 500 }
   validates :recipient_id, presence: true
   validates :category_id, presence: true
   validates :anonymous_token, uniqueness: true, allow_nil: true
