@@ -1,144 +1,83 @@
-<div>
-  <div class="mb-8 flex justify-between items-center">
-    <h1>
-      Compliments
+<div class="compliment-card bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden border border-gray-100">
+  <%# Color strip at the top based on category %>
+  <% category_color = compliment.category&.name&.parameterize || "gray" %>
+  <div class="category-strip h-1 w-full <%= category_strip_color(category_color) %>"></div>
 
-    </h1>
-    <div class="flex space-x-4">
-      <%= link_to new_compliment_path, class: "px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors" do %>
-      <i class="fas fa-plus mr-1"></i>
+  <div class="flex flex-col h-full">
+    <div class="px-5 py-4 flex-grow">
+      <%# Category tag %>
+      <div class="flex justify-between items-center mb-3">
+        <% if compliment.category %>
+        <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full <%= category_badge_classes(category_color) %>">
+          <%= compliment.category.name %>
+        </span>
+        <% end %>
 
-      New Compliment
-      <% end %>
-
-      <div class="relative" data-controller="dropdown">
-        <button>
-          dropdown#toggle" class="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
-
-          <i class="fas fa-filter mr-1"></i>
-
-          Filter
-
-          <i class="fas fa-chevron-down ml-1 text-xs"></i>
-
-        </button>
-        <div data-dropdown-target="menu" class="hidden absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-10">
-          <%= form_with url: compliments_path, method: :get, class: "p-4" do |f| %>
-          <div class="mb-3">
-            <%= f.label :category_id, "Category", class: "block text-sm font-medium text-gray-700 mb-1" %>
-            <%= f.collection_select :category_id, Category.all, :id, :name, { include_blank: "All Categories" },
-            { class: "w-full p-2 text-sm border border-gray-300 rounded-md" } %>
-          </div>
-          <% if current_user&.admin? %>
-          <div>
-            <%= f.label :status, "Status", class: "block text-sm font-medium text-gray-700 mb-1" %>
-            <%= f.select :status,
-            options_for_select([["All", ""], ["Pending", "pending"], ["Approved", "approved"], ["Flagged", "flagged"]]),
-            {}, { class: "w-full p-2 text-sm border border-gray-300 rounded-md" } %>
-          </div>
-          <% end %>
-          <div>
-            <%= f.submit "Apply Filters", class: "px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700" %>
-          </div>
-          <% end %>
-        </div>
+        <span class="text-sm text-gray-500">
+          <%= time_ago_in_words(compliment.created_at) %> ago
+        </span>
       </div>
-    </div>
-  </div>
-  <% if @compliments.any? %>
 
-  <div>
-    <% @compliments.each do |compliment| %>
-    <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-      <div class="p-5 border-b border-gray-100">
-        <div class="flex justify-between items-start mb-3">
-          <div class="flex items-center">
-            <span>
-              ">
-              <%= compliment.category.name %>
-
-            </span>
-            <% if compliment.anonymous? %>
-            <span>
-              Anonymous
-            </span>
-            <% end %>
-          </div>
-          <span>
-            <%= time_ago_in_words(compliment.created_at) %> ago
-          </span>
-        </div>
-        <p>
-          <%= compliment.content %>
+      <%# Compliment content - main focus %>
+      <div class="mb-4">
+        <p class="text-gray-800 leading-relaxed">
+          <%= simple_format(compliment.content) %>
         </p>
+      </div>
+    </div>
+
+    <%# Footer section with metadata %>
+    <div class="px-5 py-3 bg-gray-50 border-t border-gray-100">
+      <div class="flex justify-between items-center">
+        <%# Left side - sender/recipient info %>
         <div>
-          <div class="text-sm text-gray-600">
-            To:
-            <span>
-              <%= compliment.recipient.name %>
-
-            </span>
+          <% if received %>
+          <div class="text-sm">
+            <span class="text-gray-500">From: </span>
+            <% if compliment.anonymous? %>
+            <span class="font-medium text-indigo-700">Anonymous</span>
+            <% else %>
+            <span class="font-medium text-indigo-700"><%= compliment.sender&.name || "Unknown" %></span>
+            <% end %>
           </div>
-          <div>
-            <div class="text-gray-500 text-sm flex items-center">
-              <i class="far fa-heart mr-1"></i>
+          <% else %>
+          <div class="text-sm">
+            <span class="text-gray-500">To: </span>
+            <span class="font-medium text-indigo-700"><%= compliment.recipient.name %></span>
+            <% if compliment.anonymous? %>
+            <span class="text-xs text-gray-500 ml-1">(sent anonymously)</span>
+            <% end %>
+          </div>
+          <% end %>
 
-              <%= compliment.kudos_count %>
-            </div>
-            <%= link_to compliment_path(compliment), class: "text-indigo-600 hover:text-indigo-800 text-sm" do %>
-            Details
-            <i class="fas fa-chevron-right ml-1 text-xs"></i>
+          <% if compliment.community %>
+          <div class="text-xs text-gray-500 mt-1">
+            Shared in <%= link_to compliment.community.name, community_path(compliment.community), class: "text-indigo-600 hover:text-indigo-800" %>
+          </div>
+          <% end %>
+        </div>
 
+        <%# Right side - kudos count and actions %>
+        <div class="flex items-center space-x-2">
+          <%# Kudos counter %>
+          <div class="text-sm flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-500 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+            <span class="font-semibold text-gray-700"><%= compliment.kudos_count || 0 %></span>
+          </div>
+
+          <%# Action buttons - conditional based on whether it's received/sent %>
+          <div class="flex space-x-1">
+            <%= link_to compliment_path(compliment), class: "text-gray-500 hover:text-indigo-600 transition-colors duration-200" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
             <% end %>
           </div>
         </div>
       </div>
-
-      <% if current_user&.admin? || current_user == compliment.recipient %>
-      <div>
-        <% if current_user == compliment.recipient && !compliment.read_at? %>
-        <%= button_to mark_as_read_compliment_path(compliment), method: :patch, class: "text-xs text-gray-600 hover:text-gray-800" do %>
-        <i class="far fa-check-circle mr-1"></i>
-
-        Mark as read
-        <% end %>
-        <% end %>
-
-        <% if current_user&.admin? %>
-        <%= button_to compliment_path(compliment), method: :delete,
-        data: { confirm: "Are you sure you want to delete this compliment?" },
-        class: "text-xs text-red-600 hover:text-red-800" do %>
-        <i class="far fa-trash-alt mr-1"></i>
-
-        Remove
-        <% end %>
-        <% end %>
-
-      </div>
-      <% end %>
     </div>
-    <% end %>
   </div>
-  <div>
-    <%= paginate @compliments %>
-  </div>
-  <% else %>
-
-  <div>
-    <div class="text-gray-500 mb-4">
-      <i class="far fa-comment-dots text-5xl"></i>
-
-    </div>
-    <h3>
-      No compliments found
-
-    </h3>
-    <p>
-      There are currently no compliments to display.
-
-    </p>
-    <%= link_to "Send a Compliment", new_compliment_path, class: "px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors" %>
-  </div>
-  <% end %>
-
 </div>
