@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_06_06_100538) do
+ActiveRecord::Schema[7.2].define(version: 2025_06_06_101838) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -53,6 +53,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_06_06_100538) do
     t.boolean "system", default: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "compliments_count", default: 0
     t.index ["name"], name: "index_categories_on_name_and_community_id", unique: true
   end
 
